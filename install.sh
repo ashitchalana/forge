@@ -543,11 +543,11 @@ from urllib.error import URLError
 
 TOKEN_FILE = Path("$OPENAI_TOKEN_FILE")
 CALLBACK_PORT = 1455
-REDIRECT_URI = f"http://127.0.0.1:{CALLBACK_PORT}/auth/callback"
+REDIRECT_URI = f"http://localhost:{CALLBACK_PORT}/auth/callback"
 CLIENT_ID    = "app_EMoamEEZ73f0CkXaXp7hrann"
 AUTH_URL     = "https://auth.openai.com/oauth/authorize"
 TOKEN_URL    = "https://auth.openai.com/oauth/token"
-SCOPES       = "openid email profile offline_access"
+SCOPES       = "openid profile email offline_access"
 
 # ── PKCE generation ──────────────────────────────────────────
 verifier  = secrets.token_urlsafe(64)
@@ -557,13 +557,15 @@ challenge = base64.urlsafe_b64encode(
 state = secrets.token_hex(16)
 
 params = {
-    "response_type":         "code",
-    "client_id":             CLIENT_ID,
-    "redirect_uri":          REDIRECT_URI,
-    "scope":                 SCOPES,
-    "state":                 state,
-    "code_challenge":        challenge,
-    "code_challenge_method": "S256",
+    "response_type":              "code",
+    "client_id":                  CLIENT_ID,
+    "redirect_uri":               REDIRECT_URI,
+    "scope":                      SCOPES,
+    "state":                      state,
+    "code_challenge":             challenge,
+    "code_challenge_method":      "S256",
+    "id_token_add_organizations": "true",
+    "codex_cli_simplified_flow":  "true",
 }
 auth_link = AUTH_URL + "?" + urlencode(params)
 
@@ -594,7 +596,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
 # Try to bind local server
 server = None
 try:
-    server = HTTPServer(("127.0.0.1", CALLBACK_PORT), CallbackHandler)
+    server = HTTPServer(("localhost", CALLBACK_PORT), CallbackHandler)
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
     server_running = True
@@ -654,7 +656,10 @@ def jwt_payload(token):
         return {}
 
 payload    = jwt_payload(tokens["access_token"])
-account_id = payload.get("sub", payload.get("account_id", "unknown"))
+# OpenAI nests chatgpt_account_id under the custom claim key
+openai_claims = payload.get("https://api.openai.com/auth", {})
+account_id = (openai_claims.get("chatgpt_account_id")
+              or payload.get("sub", "unknown"))
 expires_at = int(time.time()) + int(tokens.get("expires_in", 3600))
 
 # ── Save tokens ───────────────────────────────────────────────
