@@ -47,17 +47,20 @@
 .pb-p4 { background:rgba(107,114,128,.12);color:#6b7280; }
 .task-assignee { font-size:9px; font-weight:700; padding:2px 7px; border-radius:20px; background:rgba(99,102,241,.1); color:var(--acc); letter-spacing:.03em; font-family:var(--font-m); }
 .task-eta { font-size:10px; color:var(--tx4); }
-.assignee-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
-.assignee-chip { display:flex; align-items:center; gap:5px; padding:5px 10px; border-radius:20px; border:1.5px solid var(--bd); font-size:11px; font-weight:600; cursor:pointer; transition:all .15s; font-family:var(--font-m); color:var(--tx3); background:var(--bg2); }
-.assignee-chip:hover { border-color:var(--bd2); color:var(--tx); }
-.assignee-chip.selected { border-color:var(--acc); background:rgba(99,102,241,.08); color:var(--acc); }
-.assignee-chip-avatar { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:#fff; }
+.assignee-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.assignee-chip { display:flex; align-items:center; gap:6px; padding:5px 11px 5px 6px; border-radius:20px; border:1.5px solid var(--bd); font-size:11px; font-weight:500; cursor:pointer; transition:all .15s; font-family:var(--font-b); color:var(--tx2); background:var(--sur); }
+.assignee-chip:hover { border-color:var(--bd2); color:var(--tx); background:var(--bg3); }
+.assignee-chip.selected { border-color:var(--acc); background:rgba(109,40,217,.06); color:var(--acc); font-weight:600; }
+.assignee-chip-avatar { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; color:#fff; flex-shrink:0; }
 .task-progress-wrap { margin-top:10px; }
 .task-progress-bar  { height:3px; background:var(--bg3); border-radius:0 0 10px 10px; overflow:hidden; }
 .task-progress-fill { height:100%; background:var(--acc); border-radius:0; transition:width .6s cubic-bezier(.4,0,.2,1); position:relative; }
 .task-progress-fill::after { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.4) 50%,transparent 100%); animation:progress-shimmer 2s infinite; }
-.task-progress-fill.pct-100 { background:var(--green); }
+.task-progress-fill.pct-100 { background:linear-gradient(90deg,#16a34a,#22c55e); }
 .task-progress-fill.pct-0 { background:var(--bg3); }
+.task-card.is-done { opacity: 0.7; }
+.task-card.is-done .task-title { text-decoration: line-through; color: var(--tx3); }
+.task-card.is-done .task-progress-fill { background: var(--green); }
 @keyframes progress-shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
 /* TASK MODAL FIELDS */
 .tmf { margin-bottom:14px; }
@@ -138,7 +141,7 @@
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
-html, body { height:100%; background:var(--bg); color:var(--tx); font-family:var(--font-b); font-size:13px; font-feature-settings:'ss01'; overflow:hidden; }
+html, body { height:100%; background:var(--bg); color:var(--tx); font-family:var(--font-b); font-size:13px; font-feature-settings:'ss01'; overflow:hidden; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
 ::selection { background:var(--acc3); color:var(--bg); }
 
 /* ── ANIMATED GRADIENT MESH (Layer 0) ── */
@@ -755,8 +758,8 @@ body::before {
   justify-content: space-between;
 }
 .stab-hero-text .stab-title {
-  font-family: var(--font-d);
-  font-size: 20px;
+  font-family: var(--font-b);
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.03em;
   color: var(--tx);
@@ -828,10 +831,10 @@ body::before {
   letter-spacing: 0.02em;
 }
 .profile-name {
-  font-family: var(--font-d);
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  font-family: var(--font-b);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0;
   color: var(--tx);
 }
 .profile-workspace { font-size: 11px; color: var(--tx3); margin-top: 2px; }
@@ -1660,7 +1663,7 @@ body::before {
 .ch-rail-label {
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: .14em;
+  letter-spacing: .07em;
   text-transform: uppercase;
   color: var(--tx4);
   padding: 0 16px 10px;
@@ -1728,18 +1731,18 @@ body::before {
   box-shadow: var(--sh2);
 }
 .ch-detail-name {
-  font-family: var(--font-d);
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  font-family: var(--font-b);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0;
   color: var(--tx);
 }
-.ch-detail-provider { font-size: 11px; color: var(--tx4); font-family: var(--font-m); margin-top: 2px; }
+.ch-detail-provider { font-size: 11px; color: var(--tx4); font-family: var(--font-b); margin-top: 2px; letter-spacing: 0; }
 .ch-detail-status {
   margin-left: auto;
   display: flex; align-items: center; gap: 8px;
-  font-size: 11px; font-weight: 600;
-  font-family: var(--font-m);
+  font-size: 11px; font-weight: 500;
+  font-family: var(--font-b);
 }
 .ch-status-dot {
   width: 7px; height: 7px;
@@ -1757,14 +1760,14 @@ body::before {
   box-shadow: var(--sh1);
 }
 .ch-config-group-title {
-  padding: 12px 18px;
+  padding: 11px 18px;
   border-bottom: 1px solid var(--bd);
   font-size: 10px; font-weight: 700;
   color: var(--tx3);
   background: var(--bg2);
   text-transform: uppercase;
-  letter-spacing: .10em;
-  font-family: var(--font-d);
+  letter-spacing: .05em;
+  font-family: var(--font-b);
 }
 .ch-config-row {
   display: flex;
@@ -2251,7 +2254,6 @@ input:focus, textarea:focus, select:focus {
       </button>
       <button class="top-btn" onclick="switchView('channels')">Channels</button>
       <button class="top-btn" onclick="openOverlay('spawn-modal')">New Agent</button>
-      <button class="top-btn-p top-btn" onclick="switchView('agents')">Agents</button>
     </div>
   </header>
 
@@ -2267,10 +2269,6 @@ input:focus, textarea:focus, select:focus {
       <button class="sidebar-item" id="nav-chat" onclick="switchView('chat', this)">
         <svg class="sidebar-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5l-3 3V3a1 1 0 0 1 1-1z"/></svg>
         Chat
-      </button>
-      <button class="sidebar-item" id="nav-agents" onclick="switchView('agents', this)">
-        <svg class="sidebar-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M1 4h14M1 8h14M1 12h14" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-        Agents
       </button>
       <button class="sidebar-item" id="nav-memory" onclick="switchView('memory', this)">
         <svg class="sidebar-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.22 3.22l1.42 1.42M11.36 11.36l1.42 1.42M3.22 12.78l1.42-1.42M11.36 4.64l1.42-1.42" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
@@ -2357,7 +2355,7 @@ input:focus, textarea:focus, select:focus {
           <div class="view-title" id="chat-agent-name">FORGE</div>
           <div class="view-sub" id="chat-agent-sub">Autonomous Execution Engine · active</div>
         </div>
-        <select class="model-selector" id="model-select" onchange="curModel=this.value">
+        <select class="model-selector" id="model-select" onchange="onModelSelectChange(this.value)">
           <option value="">— select model —</option>
         </select>
       </div>
@@ -2391,17 +2389,6 @@ input:focus, textarea:focus, select:focus {
       </div>
     </div>
 
-    <!-- AGENTS VIEW -->
-    <div class="view" id="view-agents">
-      <div class="view-head">
-        <div>
-          <div class="view-title">Agents</div>
-          <div class="view-sub" id="agents-sub">Spawned agents and their active models</div>
-        </div>
-        <button class="btn btn-primary" onclick="openOverlay('spawn-modal')">+ Spawn Agent</button>
-      </div>
-      <div id="agents-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;padding:20px"></div>
-    </div>
 
     <!-- CHANNELS VIEW — PREMIUM COMMAND CENTER -->
     <div class="view" id="view-channels">
@@ -2784,7 +2771,7 @@ input:focus, textarea:focus, select:focus {
             <!-- Populated dynamically by renderModelCards() based on active provider -->
           </div>
           <div style="padding:14px 18px;border-top:1px solid var(--bd)">
-            <div style="font-size:10px;color:var(--tx4)">Current active model: <span style="color:var(--tx2);font-family:var(--font-m)" id="cfg-primary-model">Loading…</span></div>
+            <div style="font-size:10px;color:var(--tx4)">Current active model: <span style="color:var(--tx2);font-family:var(--font-m)" id="cfg-current-model-label">Loading…</span></div>
           </div>
         </div>
         <div style="display:flex;justify-content:flex-end;padding:0 2px">
@@ -3028,12 +3015,9 @@ input:focus, textarea:focus, select:focus {
         <input type="hidden" id="td-priority" value="P3 Normal">
       </div>
       <div class="tmf">
-        <label>Status</label>
-        <select id="td-status" onchange="updateProgressFromStatus()">
-          <option value="pending">Backlog</option>
-          <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-        </select>
+        <label>Status <span style="font-size:9px;color:var(--tx4);font-weight:400;text-transform:none;letter-spacing:0">(managed by Forge)</span></label>
+        <div id="td-status-display" style="padding:7px 11px;background:var(--bg3);border:1px solid var(--bd);border-radius:7px;font-size:12px;font-weight:500;color:var(--tx3);cursor:default;user-select:none">—</div>
+        <input type="hidden" id="td-status" value="pending">
       </div>
     </div>
     <div class="tmf">
@@ -3201,6 +3185,8 @@ async function loadStatus() {
   document.getElementById('p-model').textContent  = d.primary_model || '—';
   document.getElementById('cfg-owner').value         = d.owner || '';
   document.getElementById('cfg-primary-model').value = d.primary_model || '';
+  const curModelLabel = document.getElementById('cfg-current-model-label');
+  if (curModelLabel) curModelLabel.textContent = d.primary_model || '—';
 
   // Update profile hero
   updateProfileHero(d.owner);
@@ -3328,12 +3314,21 @@ function selectAgent(name, btn) {
   const el = document.getElementById('ag-' + name);
   if (el) el.classList.add('active');
 
-  const a = agents.find(x=>x.name===name) || {role:'Master',model:'active'};
+  const a = agents.find(x=>x.name===name) || {role:'Master', model: curModel};
   document.getElementById('chat-agent-name').textContent = name;
-  document.getElementById('chat-agent-sub').textContent  = name === 'FORGE' ? 'Autonomous Execution Engine · active' : `${a.role||''} · ${a.model||''}`;
+  document.getElementById('chat-agent-sub').textContent  = name === 'FORGE' ? 'Autonomous Execution Engine' : `${a.role||'Agent'}`;
+  // Sync model selector to this agent's model
+  const agentModel = name === 'FORGE' ? curModel : (a.model || curModel);
+  const sel = document.getElementById('model-select');
+  if (sel && agentModel) sel.value = agentModel;
 
   switchView('chat');
   loadHistory();
+}
+
+async function onModelSelectChange(model) {
+  curModel = model;
+  await saveAgentModel(curAgent, model, curProvider);
 }
 
 // ══════════════════════════════════════════
@@ -3451,7 +3446,7 @@ function switchView(name, btn) {
     vw.classList.add('visible');
   }
 
-  ['mission','chat','agents','memory','heartbeat','channels','settings'].forEach(n => {
+  ['mission','chat','memory','heartbeat','channels','settings'].forEach(n => {
     const nb = document.getElementById('nav-' + n);
     if (nb) nb.classList.remove('active');
   });
@@ -3463,7 +3458,6 @@ function switchView(name, btn) {
   if (name === 'settings')  { loadStatus(); updateSettingsStatusBadges(); }
   if (name === 'mission')   loadMissionControl();
   if (name === 'channels')  loadChannelStatuses();
-  if (name === 'agents')    loadAgentsView();
 }
 
 // ══════════════════════════════════════════
@@ -3921,7 +3915,8 @@ function renderKanbanBoard(data) {
       const fillClass = autoPct >= 100 ? 'pct-100' : autoPct === 0 ? 'pct-0' : '';
       const assigneeInitial = t.assignee ? xss(t.assignee).charAt(0).toUpperCase() : null;
       const assigneeColor = t.assignee === 'FORGE' ? '#10b981' : '#6366f1';
-      return `<div class="task-card${ageWarn?' age-warn':''}" onclick="openTaskDetail(${t.id})">
+      const isDone = col.key === 'completed';
+      return `<div class="task-card${ageWarn?' age-warn':''}${isDone?' is-done':''}" onclick="openTaskDetail(${t.id})">
         <div class="task-card-body">
           <div class="task-title">${xss(t.title||'Untitled')}</div>
           <div class="task-footer">
@@ -3978,8 +3973,30 @@ function openTaskDetail(taskId) {
     c.classList.toggle('active', c.dataset.val === taskPri);
   });
   document.getElementById('td-assignee').value    = task.assignee || 'FORGE';
-  document.getElementById('td-eta').value         = task.eta ? task.eta.slice(0,16) : '';
-  document.getElementById('td-status').value      = task.status || 'pending';
+  const taskEta = task.eta ? task.eta.slice(0,16) : '';
+  document.getElementById('td-eta').value = taskEta;
+  const taskStatus = task.status || 'pending';
+  document.getElementById('td-status').value = taskStatus;
+  // Populate read-only status display
+  const statusLabels = { pending:'Backlog', in_progress:'In Progress', completed:'Completed' };
+  const statusColors = { pending:'var(--tx4)', in_progress:'var(--amber)', completed:'var(--green)' };
+  const statusDisplay = document.getElementById('td-status-display');
+  if (statusDisplay) {
+    statusDisplay.textContent = statusLabels[taskStatus] || taskStatus;
+    statusDisplay.style.color = statusColors[taskStatus] || 'var(--tx3)';
+    statusDisplay.style.fontWeight = taskStatus === 'completed' ? '600' : '500';
+  }
+  // Lock ETA if assigned to an agent (not the owner)
+  const ownerName = (document.getElementById('cfg-owner')?.value || '').trim().toUpperCase();
+  const assigneeUp = (task.assignee || 'FORGE').toUpperCase();
+  const isAgentAssigned = !ownerName || assigneeUp !== ownerName;
+  const etaInput = document.getElementById('td-eta');
+  if (etaInput) {
+    etaInput.disabled = isAgentAssigned;
+    etaInput.style.opacity = isAgentAssigned ? '0.45' : '1';
+    etaInput.style.cursor  = isAgentAssigned ? 'default' : '';
+    etaInput.title = isAgentAssigned ? 'ETA is set by the assigned agent' : '';
+  }
   document.getElementById('td-created').textContent = task.created ? new Date(task.created).toLocaleString() : '—';
   // Status badge
   const badge = document.getElementById('td-status-badge');
@@ -4049,14 +4066,18 @@ function selectPriorityChip(el) {
 }
 
 function updateProgressFromStatus() {
-  // Progress is auto-derived from status — no manual slider
   const status = document.getElementById('td-status')?.value;
   const badge = document.getElementById('td-status-badge');
+  const statusLabels = { pending:'Backlog', in_progress:'In Progress', completed:'Completed' };
+  const statusColors = { pending:'var(--tx4)', in_progress:'var(--amber)', completed:'var(--green)' };
   if (badge) {
-    const colors = { pending:'var(--tx4)', in_progress:'var(--amber)', completed:'var(--green)' };
-    const labels = { pending:'Backlog', in_progress:'In Progress', completed:'Completed' };
-    badge.style.color = colors[status] || 'var(--tx4)';
-    badge.textContent = labels[status] || status;
+    badge.style.color = statusColors[status] || 'var(--tx4)';
+    badge.textContent = statusLabels[status] || status;
+  }
+  const display = document.getElementById('td-status-display');
+  if (display) {
+    display.textContent = statusLabels[status] || status;
+    display.style.color = statusColors[status] || 'var(--tx3)';
   }
 }
 
@@ -4346,9 +4367,9 @@ async function loadChannelStatuses() {
   const tgDot   = document.getElementById('ch-tg-dot');
   const tgLbl   = document.getElementById('ch-tg-status-label');
   const tgBadge = document.getElementById('ch-tg-badge');
-  if (tgDot)   tgDot.className   = 'ch-status-dot ' + (tg ? 'ch-dot-active' : 'ch-dot-inactive');
-  if (tgLbl)   tgLbl.textContent = tg ? 'Connected' : 'Not configured';
-  if (tgBadge) { tgBadge.className = 'badge ' + (tg ? 'badge-ok' : 'badge-pending'); tgBadge.textContent = tg ? 'active' : 'not set'; }
+  if (tgDot)   { tgDot.className = 'ch-status-dot ' + (tg ? 'ch-dot-active' : 'ch-dot-inactive'); tgDot.style.cssText = `background:${tg?'var(--green)':'var(--red)'};box-shadow:0 0 6px ${tg?'rgba(22,163,74,.5)':'rgba(220,38,38,.3)'};width:8px;height:8px;border-radius:50%;flex-shrink:0`; }
+  if (tgLbl)   { tgLbl.textContent = tg ? 'Connected' : 'Not configured'; tgLbl.style.color = tg ? 'var(--green)' : 'var(--red)'; tgLbl.style.fontWeight = '600'; }
+  if (tgBadge) { tgBadge.className = 'badge ' + (tg ? 'badge-ok' : 'badge-error'); tgBadge.textContent = tg ? 'active' : 'not set'; }
   // Rail dot
   const tgRailDot = document.getElementById('rail-dot-telegram');
   if (tgRailDot) { tgRailDot.className = 'ch-rail-dot' + (tg ? ' active' : ''); }
@@ -4357,9 +4378,9 @@ async function loadChannelStatuses() {
   const dcDot   = document.getElementById('ch-dc-dot');
   const dcLbl   = document.getElementById('ch-dc-status-label');
   const dcBadge = document.getElementById('ch-dc-badge');
-  if (dcDot)   dcDot.className   = 'ch-status-dot ' + (dc ? 'ch-dot-active' : 'ch-dot-inactive');
-  if (dcLbl)   dcLbl.textContent = dc ? 'Connected' : 'Not configured';
-  if (dcBadge) { dcBadge.className = 'badge ' + (dc ? 'badge-ok' : 'badge-pending'); dcBadge.textContent = dc ? 'active' : 'not set'; }
+  if (dcDot)   { dcDot.className = 'ch-status-dot ' + (dc ? 'ch-dot-active' : 'ch-dot-inactive'); dcDot.style.cssText = `background:${dc?'var(--green)':'var(--red)'};box-shadow:0 0 6px ${dc?'rgba(22,163,74,.5)':'rgba(220,38,38,.3)'};width:8px;height:8px;border-radius:50%;flex-shrink:0`; }
+  if (dcLbl)   { dcLbl.textContent = dc ? 'Connected' : 'Not configured'; dcLbl.style.color = dc ? 'var(--green)' : 'var(--red)'; dcLbl.style.fontWeight = '600'; }
+  if (dcBadge) { dcBadge.className = 'badge ' + (dc ? 'badge-ok' : 'badge-error'); dcBadge.textContent = dc ? 'active' : 'not set'; }
   // Rail dot
   const dcRailDot = document.getElementById('rail-dot-discord');
   if (dcRailDot) { dcRailDot.className = 'ch-rail-dot' + (dc ? ' active' : ''); }
