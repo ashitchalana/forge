@@ -131,7 +131,7 @@ if [[ "$CLAUDE_OAUTH" == true ]] || [[ -n "$CLAUDE_API_KEY" ]]; then
   PRIMARY_MODEL="claude-sonnet-4-6"
 elif [[ "$OPENAI_OAUTH" == true ]] || [[ -n "$OPENAI_API_KEY" ]]; then
   PRIMARY_PROVIDER="openai"
-  PRIMARY_MODEL="gpt-4.5"
+  PRIMARY_MODEL="gpt-5.2"
 fi
 
 echo ""
