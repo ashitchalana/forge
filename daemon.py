@@ -676,8 +676,8 @@ class ForgeAI:
 
             payload = json.dumps({
                 "model":        model,
-                "store":        False,      # required for ChatGPT backend
-                "stream":       False,
+                "store":        False,
+                "stream":       True,       # ChatGPT backend requires stream=true
                 "instructions": system,
                 "input":        input_items,
                 "reasoning":    {"effort": "medium", "summary": "auto"},
@@ -688,7 +688,7 @@ class ForgeAI:
                 "Content-Type":     "application/json",
                 "OpenAI-Beta":      "responses=experimental",
                 "originator":       "codex_cli_rs",
-                "accept":           "application/json",
+                "accept":           "text/event-stream",
             }
             if account_id:
                 headers["chatgpt-account-id"] = account_id
@@ -698,19 +698,35 @@ class ForgeAI:
                 data=payload,
                 headers=headers
             )
-            with urllib.request.urlopen(req, timeout=60) as r:
-                data = json.loads(r.read())
 
-            # Parse response — look for output text
-            for item in data.get("output", []):
-                if item.get("type") == "message":
-                    for part in item.get("content", []):
-                        if part.get("type") in ("output_text", "text"):
-                            return part.get("text", "")
-            # Fallback: try top-level text
-            if data.get("text"):
-                return data["text"]
-            return str(data)
+            # Parse SSE stream — collect text deltas, watch for response.done
+            collected_text = []
+            with urllib.request.urlopen(req, timeout=90) as r:
+                for raw_line in r:
+                    line = raw_line.decode("utf-8", errors="replace").strip()
+                    if not line.startswith("data:"):
+                        continue
+                    data_str = line[5:].strip()
+                    if data_str in ("[DONE]", ""):
+                        continue
+                    try:
+                        ev = json.loads(data_str)
+                    except Exception:
+                        continue
+                    ev_type = ev.get("type", "")
+                    if ev_type == "response.output_text.delta":
+                        collected_text.append(ev.get("delta", ""))
+                    elif ev_type in ("response.done", "response.completed"):
+                        resp = ev.get("response", {})
+                        for item in resp.get("output", []):
+                            if item.get("type") == "message":
+                                for part in item.get("content", []):
+                                    if part.get("type") in ("output_text", "text"):
+                                        return part.get("text", "")
+                        if collected_text:
+                            return "".join(collected_text)
+
+            return "".join(collected_text) if collected_text else "No response received"
 
         except urllib.error.HTTPError as e:
             body = e.read().decode()
