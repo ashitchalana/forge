@@ -2025,6 +2025,68 @@ input:focus, textarea:focus, select:focus {
   letter-spacing: 0.01em;
 }
 
+/* ── PRIORITY CHIPS (modal) ── */
+.priority-chips { display:flex; gap:6px; flex-wrap:wrap; }
+.priority-chip {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--bd);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  color: var(--tx3);
+  background: var(--bg2);
+  font-family: var(--font-b);
+  user-select: none;
+}
+.priority-chip:hover { border-color: var(--bd2); color: var(--tx2); }
+.priority-chip.active[data-val="P1 Critical"] { border-color: #dc2626; background: rgba(220,38,38,.08); color: #dc2626; }
+.priority-chip.active[data-val="P2 High"]     { border-color: #d97706; background: rgba(217,119,6,.08); color: #d97706; }
+.priority-chip.active[data-val="P3 Normal"]   { border-color: var(--acc); background: var(--glow); color: var(--acc); }
+.priority-chip.active[data-val="P4 Low"]      { border-color: var(--tx4); background: var(--bg3); color: var(--tx4); }
+
+/* ── IMPROVED TASK CARD ── */
+.task-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.task-pri-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.task-pri-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.task-assignee-avatar {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--acc);
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 1.5px solid var(--bg);
+}
+.task-eta-compact {
+  font-size: 9.5px;
+  color: var(--tx4);
+  font-family: var(--font-m);
+  white-space: nowrap;
+}
+.task-card-body { padding-bottom: 10px; }
+
 /* Luxury empty state */
 .no-data { padding: 40px; text-align: center; color: var(--tx4); font-size: 12px; }
 .empty-luxury {
@@ -2227,7 +2289,7 @@ input:focus, textarea:focus, select:focus {
           <circle cx="24.5" cy="6" r="1.4" fill="#f0c050" opacity=".6"/>
           <circle cx="27" cy="9.5" r="0.9" fill="#f0c050" opacity=".4"/>
         </svg>
-        <div class="empty-title">CORTEX</div>
+        <div class="empty-title" id="empty-agent-title">FORGE</div>
         <div class="empty-sub">Autonomous execution engine.<br>Assign tasks, deploy code, research anything.</div>
       </div>
 
@@ -2235,7 +2297,7 @@ input:focus, textarea:focus, select:focus {
 
       <div class="input-area">
         <textarea class="input-field" id="input-field"
-          placeholder="Message CORTEX…"
+          placeholder="Message Forge…"
           rows="1"
           onkeydown="handleKey(event)"
           oninput="autoResize(this)">
@@ -2876,12 +2938,13 @@ input:focus, textarea:focus, select:focus {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="tmf">
         <label>Priority</label>
-        <select id="td-priority">
-          <option value="P1 Critical">P1 Critical</option>
-          <option value="P2 High">P2 High</option>
-          <option value="P3 Normal" selected>P3 Normal</option>
-          <option value="P4 Low">P4 Low</option>
-        </select>
+        <div class="priority-chips" id="td-priority-chips">
+          <div class="priority-chip" data-val="P1 Critical" onclick="selectPriorityChip(this)">Critical</div>
+          <div class="priority-chip" data-val="P2 High" onclick="selectPriorityChip(this)">High</div>
+          <div class="priority-chip active" data-val="P3 Normal" onclick="selectPriorityChip(this)">Normal</div>
+          <div class="priority-chip" data-val="P4 Low" onclick="selectPriorityChip(this)">Low</div>
+        </div>
+        <input type="hidden" id="td-priority" value="P3 Normal">
       </div>
       <div class="tmf">
         <label>Status</label>
@@ -2924,20 +2987,20 @@ input:focus, textarea:focus, select:focus {
       <label>Description</label>
       <textarea id="nt-description" placeholder="Optional details…"></textarea>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="tmf">
-        <label>Priority</label>
-        <select id="nt-priority">
-          <option value="P1 Critical">P1 Critical</option>
-          <option value="P2 High">P2 High</option>
-          <option value="P3 Normal" selected>P3 Normal</option>
-          <option value="P4 Low">P4 Low</option>
-        </select>
+    <div class="tmf">
+      <label>Priority</label>
+      <div class="priority-chips" id="nt-priority-chips">
+        <div class="priority-chip" data-val="P1 Critical" onclick="selectPriorityChip(this)">Critical</div>
+        <div class="priority-chip" data-val="P2 High" onclick="selectPriorityChip(this)">High</div>
+        <div class="priority-chip active" data-val="P3 Normal" onclick="selectPriorityChip(this)">Normal</div>
+        <div class="priority-chip" data-val="P4 Low" onclick="selectPriorityChip(this)">Low</div>
       </div>
-      <div class="tmf">
-        <label>Assignee</label>
-        <input id="nt-assignee" placeholder="FORGE">
-      </div>
+      <input type="hidden" id="nt-priority" value="P3 Normal">
+    </div>
+    <div class="tmf">
+      <label>Assignee</label>
+      <div class="assignee-chips" id="nt-assignee-chips"></div>
+      <input type="hidden" id="nt-assignee" value="FORGE">
     </div>
     <div class="tmf">
       <label>ETA</label>
@@ -3036,7 +3099,6 @@ async function api(path, body) {
 async function init() {
   await loadStatus();
   await loadAgents();
-  buildParallelGrid();
   populateModels();
   setInterval(loadStatus, 15000);
   setInterval(loadMissionControl, 20000); // auto-refresh MC every 20s
@@ -3095,6 +3157,8 @@ async function loadStatus() {
   if (sidebarName) sidebarName.textContent = agentName;
   if (sidebarRole) sidebarRole.textContent = `Master · ${d.provider || 'active'}`;
   if (chatName && chatName.dataset.locked !== 'true') chatName.textContent = agentName;
+  const emptyTitle = document.getElementById('empty-agent-title');
+  if (emptyTitle) emptyTitle.textContent = agentName;
 
   // Channel status — check both enabled flag AND that token is actually set
   const tg = d.channels?.telegram?.enabled && d.channels?.telegram?.bot_token;
@@ -3166,8 +3230,8 @@ async function loadAgents() {
     </button>`;
   }).join('');
 
-  // Parallel grid
-  buildParallelGrid();
+  // Refresh agents view if open
+  if (document.getElementById('view-agents')?.classList.contains('visible')) loadAgentsView();
 }
 
 function selectAgent(name, btn) {
@@ -3206,7 +3270,7 @@ async function loadHistory() {
 
 function renderMsg(role, content, ts) {
   const isUser = role === 'user';
-  const displayName = isUser ? 'You' : (curAgent === 'FORGE' ? 'CORTEX' : curAgent);
+  const displayName = isUser ? 'You' : curAgent;
   const t = ts ? new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
   const html = content
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -3761,18 +3825,22 @@ function renderKanbanBoard(data) {
       const age = t.created ? (now - new Date(t.created).getTime()) : 0;
       const ageWarn = col.key === 'backlog' && age > 48 * 3600000;
       const pri = t.priority || 'P3 Normal';
-      const priClass = pri.startsWith('P1') ? 'pb-p1' : pri.startsWith('P2') ? 'pb-p2' : pri.startsWith('P4') ? 'pb-p4' : 'pb-p3';
+      const priShort = pri.startsWith('P1') ? 'Critical' : pri.startsWith('P2') ? 'High' : pri.startsWith('P4') ? 'Low' : 'Normal';
+      const priDotBg = pri.startsWith('P1') ? '#dc2626' : pri.startsWith('P2') ? '#d97706' : pri.startsWith('P4') ? '#9ca3af' : '#8b5cf6';
       const eta = t.eta ? fmtEta(t.eta) : null;
       const prog = t.progress || 0;
       const autoPct = col.key === 'completed' ? 100 : col.key === 'in_progress' ? (prog || 50) : (prog || 0);
       const fillClass = autoPct >= 100 ? 'pct-100' : autoPct === 0 ? 'pct-0' : '';
+      const assigneeInitial = t.assignee ? xss(t.assignee).charAt(0).toUpperCase() : null;
+      const assigneeColor = t.assignee === 'FORGE' ? '#10b981' : '#6366f1';
       return `<div class="task-card${ageWarn?' age-warn':''}" onclick="openTaskDetail(${t.id})">
         <div class="task-card-body">
-          <div class="task-title" style="font-size:12px;font-weight:600;line-height:1.4;margin-bottom:6px">${xss(t.title||'Untitled')}</div>
-          <div class="task-meta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span class="priority-badge ${priClass}">${pri}</span>
-            ${t.assignee ? `<span class="task-assignee">${xss(t.assignee)}</span>` : ''}
-            ${eta ? `<span class="task-eta">· ${eta}</span>` : ''}
+          <div class="task-title">${xss(t.title||'Untitled')}</div>
+          <div class="task-footer">
+            <span class="task-pri-dot" style="background:${priDotBg}"></span>
+            <span class="task-pri-label" style="color:${priDotBg}">${priShort}</span>
+            ${eta ? `<span class="task-eta-compact">${eta}</span>` : ''}
+            ${assigneeInitial ? `<div class="task-assignee-avatar" style="background:${assigneeColor}" title="${xss(t.assignee)}">${assigneeInitial}</div>` : ''}
           </div>
         </div>
         <div class="task-progress-wrap"><div class="task-progress-bar"><div class="task-progress-fill ${fillClass}" style="width:${autoPct}%"></div></div></div>
@@ -3816,7 +3884,11 @@ function openTaskDetail(taskId) {
   mcCurrentTask = task;
   document.getElementById('td-title').value       = task.title || '';
   document.getElementById('td-description').value = task.description || '';
-  document.getElementById('td-priority').value    = task.priority || 'P3 Normal';
+  const taskPri = task.priority || 'P3 Normal';
+  document.getElementById('td-priority').value = taskPri;
+  document.querySelectorAll('#td-priority-chips .priority-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === taskPri);
+  });
   document.getElementById('td-assignee').value    = task.assignee || 'FORGE';
   document.getElementById('td-eta').value         = task.eta ? task.eta.slice(0,16) : '';
   document.getElementById('td-status').value      = task.status || 'pending';
@@ -3836,37 +3908,56 @@ function openTaskDetail(taskId) {
 }
 
 function buildAssigneeChips(selected) {
-  const container = document.getElementById('td-assignee-chips');
+  buildAssigneeChipsFor('td-assignee-chips', 'td-assignee', selected);
+}
+
+function buildAssigneeChipsFor(containerId, hiddenId, selected) {
+  const container = document.getElementById(containerId);
   if (!container) return;
-  const ownerName = document.getElementById('cfg-owner')?.value || 'Owner';
-  const agentName = document.getElementById('sidebar-agent-name')?.textContent || 'FORGE';
-  // Base options: owner + main agent + any spawned agents
-  const baseAssignees = [
-    { id: ownerName.toUpperCase(), label: ownerName, color: '#6366f1' },
-    { id: agentName, label: agentName, color: '#10b981' },
-  ];
-  // Add spawned agents from mcTasks agents
-  const seenAgents = new Set(baseAssignees.map(a => a.id));
+  const ownerRaw  = (document.getElementById('cfg-owner')?.value || '').trim();
+  const agentRaw  = (document.getElementById('sidebar-agent-name')?.textContent || 'FORGE').trim();
+  const seen = new Set();
+  const list = [];
+  const tryAdd = (id, label, color) => {
+    const key = id.toUpperCase();
+    if (!seen.has(key)) { seen.add(key); list.push({ id, label, color }); }
+  };
+  // Owner only if distinct from agent
+  if (ownerRaw) tryAdd(ownerRaw, ownerRaw, '#6366f1');
+  tryAdd(agentRaw, agentRaw, '#10b981');
+  // Spawned agents
+  agents.forEach(a => tryAdd(a.name, a.name, '#8b5cf6'));
+  // Also add from task assignees seen in board
   mcTasks.forEach(t => {
-    const ag = (t.assignee || '').toUpperCase();
-    if (ag && !seenAgents.has(ag)) {
-      seenAgents.add(ag);
-      baseAssignees.push({ id: ag, label: ag, color: '#8b5cf6' });
-    }
+    if (t.assignee) tryAdd(t.assignee, t.assignee, '#8b5cf6');
   });
-  container.innerHTML = baseAssignees.map(a => {
+
+  container.innerHTML = list.map(a => {
     const sel = (selected || '').toUpperCase() === a.id.toUpperCase() ? ' selected' : '';
-    return `<div class="assignee-chip${sel}" onclick="selectAssigneeChip(this,'${a.id}')">
+    return `<div class="assignee-chip${sel}" onclick="selectAssigneeChip(this,'${a.id}','${hiddenId}')">
       <div class="assignee-chip-avatar" style="background:${a.color}">${a.label.charAt(0).toUpperCase()}</div>
       ${a.label}
     </div>`;
   }).join('');
+  const hidEl = document.getElementById(hiddenId);
+  if (hidEl && !hidEl.value) hidEl.value = selected || agentRaw;
 }
 
-function selectAssigneeChip(el, id) {
-  document.querySelectorAll('.assignee-chip').forEach(c => c.classList.remove('selected'));
+function selectAssigneeChip(el, id, hiddenId) {
+  const container = el.closest('.assignee-chips');
+  if (container) container.querySelectorAll('.assignee-chip').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
-  document.getElementById('td-assignee').value = id;
+  document.getElementById(hiddenId || 'td-assignee').value = id;
+}
+
+function selectPriorityChip(el) {
+  const container = el.closest('.priority-chips');
+  if (!container) return;
+  container.querySelectorAll('.priority-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const hidId = container.id === 'nt-priority-chips' ? 'nt-priority' : 'td-priority';
+  const hidEl = document.getElementById(hidId);
+  if (hidEl) hidEl.value = el.dataset.val;
 }
 
 function updateProgressFromStatus() {
@@ -3909,9 +4000,14 @@ async function deleteTaskDetail() {
 // New task
 function openNewTaskModal() {
   ['nt-title','nt-description'].forEach(id => document.getElementById(id).value = '');
+  // Reset priority chips to Normal
+  document.querySelectorAll('#nt-priority-chips .priority-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === 'P3 Normal');
+  });
   document.getElementById('nt-priority').value = 'P3 Normal';
-  document.getElementById('nt-assignee').value = '';
   document.getElementById('nt-eta').value = '';
+  // Build assignee chips for new task (default FORGE)
+  buildAssigneeChipsFor('nt-assignee-chips', 'nt-assignee', 'FORGE');
   openOverlay('new-task-modal');
   setTimeout(() => document.getElementById('nt-title').focus(), 80);
 }
@@ -3935,7 +4031,7 @@ async function createNewTask() {
 const CMD_ACTIONS = [
   { icon:'⊕', label:'New Task',         action: openNewTaskModal },
   { icon:'◎', label:'Mission Control',  action: ()=>switchView('mission') },
-  { icon:'◎', label:'Chat with CORTEX', action: ()=>switchView('chat') },
+  { icon:'◎', label:'Chat with Forge', action: ()=>switchView('chat') },
   { icon:'◎', label:'Agents',            action: ()=>switchView('agents') },
   { icon:'◎', label:'Memory',           action: ()=>switchView('memory') },
   { icon:'◎', label:'Heartbeat',        action: ()=>switchView('heartbeat') },
