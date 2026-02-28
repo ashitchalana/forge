@@ -628,6 +628,13 @@ class ForgeAI:
     @classmethod
     def _openai(cls, system, messages, model, key):
         if not key: return "OpenAI key not configured. Run: forge setup"
+        # OAuth tokens use the Responses API (same as Codex CLI)
+        # API keys use the standard Chat Completions API
+        cfg = load_cfg()
+        token_file = cfg.get("providers", {}).get("openai", {}).get("token_file", "")
+        is_oauth = bool(token_file and (Path(token_file).exists() if token_file else False))
+        if is_oauth:
+            return cls._openai_responses(system, messages, model, key)
         try:
             import openai
             c = openai.OpenAI(api_key=key)
@@ -635,6 +642,48 @@ class ForgeAI:
             r = c.chat.completions.create(model=model, messages=msgs, max_tokens=8096)
             return r.choices[0].message.content
         except Exception as e: return f"OpenAI error: {e}"
+
+    @classmethod
+    def _openai_responses(cls, system, messages, model, token):
+        """Call OpenAI Responses API using OAuth Bearer token (Codex CLI method)."""
+        import urllib.request, urllib.error
+        try:
+            # Build input: system prompt + conversation history
+            input_text = f"{system}\n\n"
+            for m in messages[-10:]:
+                role = m.get("role", "user")
+                content = m.get("content", "")
+                input_text += f"{role.upper()}: {content}\n"
+
+            payload = json.dumps({
+                "model": model,
+                "input": input_text.strip(),
+                "max_output_tokens": 4096,
+            }).encode()
+
+            req = urllib.request.Request(
+                "https://api.openai.com/v1/responses",
+                data=payload,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type":  "application/json",
+                }
+            )
+            with urllib.request.urlopen(req, timeout=60) as r:
+                data = json.loads(r.read())
+
+            # Extract text from response
+            for item in data.get("output", []):
+                if item.get("type") == "message":
+                    for part in item.get("content", []):
+                        if part.get("type") == "output_text":
+                            return part.get("text", "")
+            return str(data)
+        except urllib.error.HTTPError as e:
+            body = e.read().decode()
+            return f"OpenAI Responses API error {e.code}: {body}"
+        except Exception as e:
+            return f"OpenAI error: {e}"
 
     @staticmethod
     def _cursor_call(system, messages, model_key, cfg=None):
