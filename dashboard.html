@@ -1014,6 +1014,107 @@ body::before {
 .hb-timeline-dot.error { background: var(--red);   box-shadow: 0 0 4px rgba(220,38,38,0.4); }
 .hb-timeline-dot.empty { background: var(--bg3); }
 .hb-countdown { font-family: var(--font-m); font-size: 11px; color: var(--acc); font-weight: 600; }
+/* Heartbeat chart view */
+.hb-chart-wrap {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.hb-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.hb-stat-card {
+  background: var(--sur);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hb-stat-val {
+  font-family: var(--font-m);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--tx);
+  letter-spacing: -0.5px;
+}
+.hb-stat-val.green { color: var(--green); }
+.hb-stat-val.amber { color: var(--amber); }
+.hb-stat-lbl {
+  font-size: 11px;
+  color: var(--tx2);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.hb-chart-card {
+  background: var(--sur);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.hb-chart-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx2);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.hb-svg-chart {
+  width: 100%;
+  height: 120px;
+  display: block;
+  overflow: visible;
+}
+.hb-chart-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.hb-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--tx2);
+}
+.hb-chart-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.hb-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.hb-recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg2);
+  font-size: 12px;
+}
+.hb-recent-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--tx);
+}
+.hb-recent-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.hb-recent-time { font-size: 11px; color: var(--tx2); }
 /* Saved toast */
 .saved-toast {
   position: fixed; bottom: 24px; right: 24px;
@@ -1566,6 +1667,7 @@ body::before {
 .ch-icon-tg { background: rgba(0,136,204,.12); }
 .ch-icon-dc { background: rgba(88,101,242,.12); }
 .ch-icon-wh { background: rgba(109,40,217,.12); }
+.ch-icon-wa { background: rgba(37,211,102,.12); }
 .ch-rail-name { font-size: 12px; font-weight: 600; color: var(--tx2); }
 .ch-rail-sub  { font-size: 9.5px; color: var(--tx4); margin-top: 1px; font-family: var(--font-m); }
 .ch-rail-dot  {
@@ -2166,15 +2268,15 @@ input:focus, textarea:focus, select:focus {
             </div>
             <div class="ch-rail-dot" id="rail-dot-discord"></div>
           </button>
-          <button class="ch-rail-item" onclick="selectChannel('webhook',this)">
-            <div class="ch-rail-icon ch-icon-wh">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(109,40,217,.85)" stroke-width="1.8" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <button class="ch-rail-item" onclick="selectChannel('whatsapp',this)">
+            <div class="ch-rail-icon ch-icon-wa">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(37,211,102,.85)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
             </div>
             <div>
-              <div class="ch-rail-name">Webhook</div>
-              <div class="ch-rail-sub">HTTP · Custom</div>
+              <div class="ch-rail-name">WhatsApp</div>
+              <div class="ch-rail-sub">Twilio · Business API</div>
             </div>
-            <div class="ch-rail-dot" id="rail-dot-webhook"></div>
+            <div class="ch-rail-dot" id="rail-dot-whatsapp"></div>
           </button>
         </div>
 
@@ -2255,40 +2357,50 @@ input:focus, textarea:focus, select:focus {
         </div>
 
         <!-- Webhook panel (hidden by default) -->
-        <div class="ch-detail" id="ch-panel-webhook" style="display:none">
+        <div class="ch-detail" id="ch-panel-whatsapp" style="display:none">
           <div class="ch-detail-header">
-            <div class="ch-detail-icon ch-icon-wh">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(109,40,217,.85)" stroke-width="1.8" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <div class="ch-detail-icon ch-icon-wa">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(37,211,102,.85)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
             </div>
             <div>
-              <div class="ch-detail-name">Webhook</div>
-              <div class="ch-detail-provider">HTTP POST · Custom endpoint</div>
+              <div class="ch-detail-name">WhatsApp</div>
+              <div class="ch-detail-provider">Twilio · Business API · Notifications</div>
             </div>
             <div class="ch-detail-status">
-              <span class="badge badge-pending" id="ch-wh-badge">not set</span>
+              <div class="ch-status-dot" id="ch-wa-dot" style="background:var(--tx4);width:8px;height:8px;border-radius:50%"></div>
+              <span id="ch-wa-status-label">Not configured</span>
+              <span class="badge" id="ch-wa-badge" style="margin-left:4px">—</span>
             </div>
           </div>
           <div class="ch-config-group">
-            <div class="ch-config-group-title">Endpoint</div>
+            <div class="ch-config-group-title">Twilio Credentials</div>
             <div class="ch-config-row">
-              <span class="ch-config-label">URL</span>
-              <input class="ch-input" type="text" id="ch-wh-url" placeholder="https://your-server.com/webhook">
+              <span class="ch-config-label">Account SID</span>
+              <input class="ch-input" type="text" id="ch-wa-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
             </div>
             <div class="ch-config-row">
-              <span class="ch-config-label">Secret key</span>
-              <input class="ch-input" type="password" id="ch-wh-secret" placeholder="HMAC signing secret (optional)">
+              <span class="ch-config-label">Auth Token</span>
+              <input class="ch-input" type="password" id="ch-wa-token" placeholder="Your Twilio Auth Token">
+            </div>
+            <div class="ch-config-row">
+              <span class="ch-config-label">From number</span>
+              <input class="ch-input" type="text" id="ch-wa-from" placeholder="whatsapp:+14155238886">
+            </div>
+            <div class="ch-config-row">
+              <span class="ch-config-label">To number</span>
+              <input class="ch-input" type="text" id="ch-wa-to" placeholder="whatsapp:+614xxxxxxxx">
             </div>
           </div>
           <div class="ch-config-group">
             <div class="ch-config-group-title">Event Routing</div>
-            <div class="ch-events-row"><div><div class="ch-event-label">All events</div><div class="ch-event-desc">Send all Forge events to this endpoint</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+            <div class="ch-events-row"><div><div class="ch-event-label">Task completed</div><div class="ch-event-desc">Notify when a task moves to completed</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+            <div class="ch-events-row"><div><div class="ch-event-label">Heartbeat alerts</div><div class="ch-event-desc">System health warnings and check-ins</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+            <div class="ch-events-row"><div><div class="ch-event-label">Autonomous updates</div><div class="ch-event-desc">Proactive briefings from Forge</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+            <div class="ch-events-row"><div><div class="ch-event-label">Errors</div><div class="ch-event-desc">System errors and failures</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
           </div>
           <div class="ch-actions">
-            <button class="btn btn-ghost" onclick="testChannel('webhook')">Test POST</button>
-            <button class="btn btn-primary" onclick="saveChannel('webhook')">Save</button>
-          </div>
-          <div class="ch-config-group" style="margin-top:16px">
-            <div class="ch-note">Forge sends POST requests with JSON payloads to your endpoint for all configured events.</div>
+            <button class="btn btn-ghost" onclick="testChannel('whatsapp')">Send test message</button>
+            <button class="btn btn-primary" onclick="saveChannel('whatsapp')">Save</button>
           </div>
         </div>
       </div>
@@ -2350,11 +2462,39 @@ input:focus, textarea:focus, select:focus {
       <div class="view-head">
         <div>
           <div class="view-title">Heartbeat</div>
-          <div class="view-sub">System health checks every 30 minutes</div>
+          <div class="view-sub">System health — checks every 30 minutes</div>
         </div>
       </div>
-      <div class="hb-list" id="hb-list">
-        <div class="no-data">No heartbeat data yet.</div>
+      <div class="hb-chart-wrap">
+        <div class="hb-stat-cards">
+          <div class="hb-stat-card">
+            <div class="hb-stat-val green" id="hb-uptime-val">—</div>
+            <div class="hb-stat-lbl">Uptime</div>
+          </div>
+          <div class="hb-stat-card">
+            <div class="hb-stat-val" id="hb-total-val">—</div>
+            <div class="hb-stat-lbl">Total checks</div>
+          </div>
+          <div class="hb-stat-card">
+            <div class="hb-stat-val amber" id="hb-warn-val">—</div>
+            <div class="hb-stat-lbl">Warnings</div>
+          </div>
+        </div>
+        <div class="hb-chart-card">
+          <div class="hb-chart-title">Status over time (last 48 checks)</div>
+          <svg class="hb-svg-chart" id="hb-svg" viewBox="0 0 800 120" preserveAspectRatio="none"></svg>
+          <div class="hb-chart-row">
+            <div class="hb-chart-legend"><div class="hb-chart-legend-dot" style="background:var(--green)"></div>OK</div>
+            <div class="hb-chart-legend"><div class="hb-chart-legend-dot" style="background:var(--amber)"></div>Warning</div>
+            <div class="hb-chart-legend"><div class="hb-chart-legend-dot" style="background:var(--red)"></div>Error</div>
+          </div>
+        </div>
+        <div class="hb-chart-card">
+          <div class="hb-chart-title">Recent checks</div>
+          <div class="hb-recent-list" id="hb-recent-list">
+            <div class="no-data">No heartbeat data yet. Forge checks every 30 minutes.</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3144,23 +3284,64 @@ function switchView(name, btn) {
 // ══════════════════════════════════════════
 async function loadHeartbeats() {
   const data = await api('/heartbeats').catch(()=>[]);
-  const list = document.getElementById('hb-list');
-  list.innerHTML = data.length
-    ? data.map(h => {
-        const notes  = h.notes ? JSON.parse(h.notes) : [];
-        const cls    = h.status === 'ok' ? 'badge-ok' : 'badge-warn';
-        return `<div class="hb-item">
-          <div>
-            <div style="font-size:11px;font-weight:500">${h.status || 'ok'}</div>
-            ${notes.length ? `<div class="hb-notes">${notes.join(', ')}</div>` : ''}
-          </div>
-          <div style="text-align:right">
-            <span class="badge ${cls}">${h.status||'ok'}</span>
-            <div class="hb-time">${(h.timestamp||'').slice(0,16)}</div>
-          </div>
-        </div>`;
-      }).join('')
-    : '<div class="no-data">No heartbeat data yet. Forge checks every 30 minutes.</div>';
+  const recent = data.slice(0, 20);
+  const total  = data.length;
+  const warns  = data.filter(h => h.status === 'warn' || h.status === 'error').length;
+  const upPct  = total > 0 ? Math.round(((total - warns) / total) * 100) : 100;
+
+  const uptimeEl = document.getElementById('hb-uptime-val');
+  const totalEl  = document.getElementById('hb-total-val');
+  const warnEl   = document.getElementById('hb-warn-val');
+  if (uptimeEl) uptimeEl.textContent = total > 0 ? upPct + '%' : '—';
+  if (totalEl)  totalEl.textContent  = total > 0 ? total : '—';
+  if (warnEl)   warnEl.textContent   = total > 0 ? warns : '—';
+
+  const svg = document.getElementById('hb-svg');
+  const pts = data.slice(0, 48).reverse();
+  if (svg && pts.length > 1) {
+    const w = 800, h = 120, pad = 10;
+    const step = (w - pad * 2) / (pts.length - 1);
+    const colorMap = { ok: 'var(--green)', warn: 'var(--amber)', error: 'var(--red)' };
+    const yMap = { ok: h * 0.8, warn: h * 0.5, error: h * 0.2 };
+    const coords = pts.map((p, i) => ({
+      x: pad + i * step,
+      y: yMap[p.status] ?? h * 0.8,
+      status: p.status
+    }));
+    const polyPts = coords.map(c => `${c.x},${c.y}`).join(' ');
+    const fillPts = `${pad},${h} ` + polyPts + ` ${pad + (pts.length-1)*step},${h}`;
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="hbGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--green)" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="var(--green)" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <polygon points="${fillPts}" fill="url(#hbGrad)"/>
+      <polyline points="${polyPts}" fill="none" stroke="var(--green)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${coords.map(c => `<circle cx="${c.x}" cy="${c.y}" r="3.5" fill="${colorMap[c.status] || 'var(--green)'}" stroke="var(--sur)" stroke-width="1.5"/>`).join('')}
+    `;
+  } else if (svg) {
+    svg.innerHTML = `<text x="400" y="60" text-anchor="middle" fill="var(--tx2)" font-size="12">No data yet</text>`;
+  }
+
+  const listEl = document.getElementById('hb-recent-list');
+  if (listEl) {
+    listEl.innerHTML = recent.length
+      ? recent.map(h => {
+          const dotColor = h.status === 'ok' ? 'var(--green)' : h.status === 'warn' ? 'var(--amber)' : 'var(--red)';
+          const notes = h.notes ? (() => { try { return JSON.parse(h.notes).join(', '); } catch(e) { return h.notes; } })() : '';
+          return `<div class="hb-recent-row">
+            <div class="hb-recent-status">
+              <div class="hb-recent-dot" style="background:${dotColor}"></div>
+              ${h.status || 'ok'}${notes ? ` — <span style="color:var(--tx2);font-weight:400">${notes}</span>` : ''}
+            </div>
+            <div class="hb-recent-time">${(h.timestamp||'').slice(0,16).replace('T',' ')}</div>
+          </div>`;
+        }).join('')
+      : '<div class="no-data">No heartbeat data yet. Forge checks every 30 minutes.</div>';
+  }
+
   renderHeartbeatTimeline(data);
 }
 
@@ -3730,7 +3911,7 @@ function filterMemoryByCategory(cat, btn) {
 function selectChannel(id, btn) {
   document.querySelectorAll('.ch-rail-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['telegram','discord','webhook'].forEach(c => {
+  ['telegram','discord','whatsapp'].forEach(c => {
     const p = document.getElementById('ch-panel-' + c);
     if (!p) return;
     p.style.display = (c === id) ? 'flex' : 'none';
@@ -3764,6 +3945,10 @@ async function loadChannelStatuses() {
   // Rail dot
   const dcRailDot = document.getElementById('rail-dot-discord');
   if (dcRailDot) { dcRailDot.className = 'ch-rail-dot' + (dc ? ' active' : ''); }
+
+  const wa = d.channels?.whatsapp?.enabled;
+  const waDot = document.getElementById('rail-dot-whatsapp');
+  if (waDot) waDot.style.background = wa ? 'var(--green)' : 'var(--tx4)';
 }
 
 async function testChannel(type) {
@@ -3784,9 +3969,11 @@ async function saveChannel(type) {
   } else if (type === 'discord') {
     payload.token      = document.getElementById('ch-dc-token')?.value;
     payload.channel_id = document.getElementById('ch-dc-channel')?.value;
-  } else if (type === 'webhook') {
-    payload.url    = document.getElementById('ch-wh-url')?.value;
-    payload.secret = document.getElementById('ch-wh-secret')?.value;
+  } else if (type === 'whatsapp') {
+    payload.sid   = document.getElementById('ch-wa-sid')?.value;
+    payload.token = document.getElementById('ch-wa-token')?.value;
+    payload.from  = document.getElementById('ch-wa-from')?.value;
+    payload.to    = document.getElementById('ch-wa-to')?.value;
   }
   const btn = event.target;
   btn.textContent = 'Saving…';
