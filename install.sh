@@ -71,7 +71,7 @@ echo ""
 echo -e "  ${BOLD}Which AI provider do you have?${RESET}"
 echo "    1) Claude subscription (OAuth login) — Recommended"
 echo "    2) Claude API key"
-echo "    3) OpenAI / ChatGPT API key"
+echo "    3) OpenAI / ChatGPT (OAuth login or API key)"
 echo "    4) Gemini API key"
 echo "    5) Multiple providers (configure all)"
 echo ""
@@ -79,6 +79,7 @@ ask "Enter number(s), e.g. 1 or 1 3: "
 read -r PROVIDER_CHOICE
 
 CLAUDE_OAUTH=false
+OPENAI_OAUTH=false
 CLAUDE_API_KEY=""
 OPENAI_API_KEY=""
 GEMINI_API_KEY=""
@@ -93,8 +94,18 @@ for choice in $PROVIDER_CHOICE; do
       read -rs CLAUDE_API_KEY; echo ""
       ;;
     3)
-      ask "OpenAI API key: "
-      read -rs OPENAI_API_KEY; echo ""
+      echo ""
+      echo -e "  ${BOLD}OpenAI auth method:${RESET}"
+      echo "    a) OAuth login (ChatGPT subscription — no API key needed)"
+      echo "    b) API key (platform.openai.com)"
+      ask "Choose (a/b): "
+      read -r OPENAI_AUTH_METHOD
+      if [[ "$OPENAI_AUTH_METHOD" == "a" ]]; then
+        OPENAI_OAUTH=true
+      else
+        ask "OpenAI API key: "
+        read -rs OPENAI_API_KEY; echo ""
+      fi
       ;;
     4)
       ask "Gemini API key: "
@@ -109,7 +120,7 @@ done
 if [[ "$CLAUDE_OAUTH" == true ]] || [[ -n "$CLAUDE_API_KEY" ]]; then
   PRIMARY_PROVIDER="anthropic"
   PRIMARY_MODEL="claude-sonnet-4-6"
-elif [[ -n "$OPENAI_API_KEY" ]]; then
+elif [[ "$OPENAI_OAUTH" == true ]] || [[ -n "$OPENAI_API_KEY" ]]; then
   PRIMARY_PROVIDER="openai"
   PRIMARY_MODEL="gpt-4o"
 fi
@@ -510,6 +521,173 @@ cfg.setdefault('providers', {}).setdefault('anthropic', {})['oauth_configured'] 
 cfg_path.write_text(json.dumps(cfg, indent=2))
 print("forge.json updated with OAuth status")
 PYOAUTH
+  fi
+fi
+
+# ════════════════════════════════════════════════════════════════
+# SECTION 9b — OPENAI OAUTH LOGIN (PKCE flow, if selected)
+# ════════════════════════════════════════════════════════════════
+if [[ "$OPENAI_OAUTH" == true ]]; then
+  hdr "OpenAI OAuth Login"
+  echo ""
+  info "Running PKCE OAuth flow for ChatGPT/OpenAI..."
+  echo ""
+
+  OPENAI_TOKEN_FILE="$FORGE_CFG/openai_token.json"
+
+  python3 - <<PYOPENAI_OAUTH
+import sys, os, json, base64, hashlib, secrets, threading, webbrowser, time
+from pathlib import Path
+from urllib.parse import urlencode, urlparse, parse_qs
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.request import urlopen, Request
+from urllib.error import URLError
+
+TOKEN_FILE = Path("$OPENAI_TOKEN_FILE")
+CALLBACK_PORT = 1455
+REDIRECT_URI = f"http://127.0.0.1:{CALLBACK_PORT}/auth/callback"
+CLIENT_ID    = "app_Dh2mBSMBbHuXS7jyqoFjAdaU"
+AUTH_URL     = "https://auth.openai.com/oauth/authorize"
+TOKEN_URL    = "https://auth.openai.com/oauth/token"
+SCOPES       = "openid email profile offline_access"
+
+# ── PKCE generation ──────────────────────────────────────────
+verifier  = secrets.token_urlsafe(64)
+challenge = base64.urlsafe_b64encode(
+    hashlib.sha256(verifier.encode()).digest()
+).rstrip(b"=").decode()
+state = secrets.token_hex(16)
+
+params = {
+    "response_type":         "code",
+    "client_id":             CLIENT_ID,
+    "redirect_uri":          REDIRECT_URI,
+    "scope":                 SCOPES,
+    "state":                 state,
+    "code_challenge":        challenge,
+    "code_challenge_method": "S256",
+}
+auth_link = AUTH_URL + "?" + urlencode(params)
+
+# ── Local callback server ─────────────────────────────────────
+auth_code  = [None]
+server_err = [None]
+
+class CallbackHandler(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def do_GET(self):
+        qs = parse_qs(urlparse(self.path).query)
+        if "code" in qs and qs.get("state", [""])[0] == state:
+            auth_code[0] = qs["code"][0]
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"""
+<html><body style='font-family:sans-serif;text-align:center;margin-top:80px'>
+<h2 style='color:#10a37f'>Forge connected to OpenAI</h2>
+<p>You can close this tab and return to the terminal.</p>
+</body></html>""")
+        else:
+            server_err[0] = qs.get("error", ["unknown"])[0]
+            self.send_response(400)
+            self.end_headers()
+        threading.Thread(target=self.server.shutdown, daemon=True).start()
+
+# Try to bind local server
+server = None
+try:
+    server = HTTPServer(("127.0.0.1", CALLBACK_PORT), CallbackHandler)
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    server_running = True
+except OSError:
+    server_running = False
+
+# Open browser
+print(f"\n  Opening browser for OpenAI login...")
+webbrowser.open(auth_link)
+print(f"\n  Auth URL (if browser didn't open):\n  {auth_link}\n")
+
+if server_running:
+    print("  Waiting for callback on http://127.0.0.1:1455...")
+    t.join(timeout=120)
+    if not auth_code[0]:
+        server_running = False  # fall through to manual
+
+if not server_running or not auth_code[0]:
+    print("\n  Could not capture callback automatically.")
+    print("  After logging in, paste the full redirect URL here:")
+    redirected = input("  Redirect URL: ").strip()
+    qs = parse_qs(urlparse(redirected).query)
+    if "code" not in qs:
+        print("  ERROR: No code found in URL. Skipping OpenAI OAuth.")
+        sys.exit(0)
+    auth_code[0] = qs["code"][0]
+
+# ── Token exchange ────────────────────────────────────────────
+print("\n  Exchanging code for tokens...")
+body = json.dumps({
+    "grant_type":    "authorization_code",
+    "client_id":     CLIENT_ID,
+    "code":          auth_code[0],
+    "redirect_uri":  REDIRECT_URI,
+    "code_verifier": verifier,
+}).encode()
+
+req = Request(TOKEN_URL, data=body, headers={"Content-Type": "application/json"})
+try:
+    with urlopen(req, timeout=15) as r:
+        tokens = json.loads(r.read())
+except Exception as e:
+    print(f"  ERROR during token exchange: {e}")
+    sys.exit(0)
+
+if "access_token" not in tokens:
+    print(f"  ERROR: {tokens}")
+    sys.exit(0)
+
+# ── Extract accountId from JWT payload ───────────────────────
+def jwt_payload(token):
+    try:
+        part = token.split(".")[1]
+        part += "=" * (-len(part) % 4)
+        return json.loads(base64.urlsafe_b64decode(part))
+    except Exception:
+        return {}
+
+payload    = jwt_payload(tokens["access_token"])
+account_id = payload.get("sub", payload.get("account_id", "unknown"))
+expires_at = int(time.time()) + int(tokens.get("expires_in", 3600))
+
+# ── Save tokens ───────────────────────────────────────────────
+token_data = {
+    "access_token":  tokens["access_token"],
+    "refresh_token": tokens.get("refresh_token", ""),
+    "expires_at":    expires_at,
+    "account_id":    account_id,
+    "scope":         tokens.get("scope", SCOPES),
+}
+TOKEN_FILE.write_text(json.dumps(token_data, indent=2))
+os.chmod(TOKEN_FILE, 0o600)
+
+# ── Update forge.json ─────────────────────────────────────────
+cfg_path = Path("$CFG_FILE")
+cfg = json.loads(cfg_path.read_text())
+cfg.setdefault("providers", {}).setdefault("openai", {}).update({
+    "oauth_configured": True,
+    "account_id":       account_id,
+    "token_file":       str(TOKEN_FILE),
+})
+cfg_path.write_text(json.dumps(cfg, indent=2))
+
+print(f"  OpenAI OAuth complete — accountId: {account_id}")
+print(f"  Tokens saved to: {TOKEN_FILE}")
+PYOPENAI_OAUTH
+
+  if [[ -f "$FORGE_CFG/openai_token.json" ]]; then
+    ok "OpenAI OAuth session active"
+  else
+    warn "OpenAI OAuth may have failed — check output above"
   fi
 fi
 
