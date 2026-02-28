@@ -412,17 +412,14 @@ ok "Identity files ready"
 # ════════════════════════════════════════════════════════════════
 hdr "Installing Forge daemon"
 
-# daemon.py
-if [[ -f "$FORGE_CFG/daemon.py" ]]; then
-  ok "daemon.py already present"
+# daemon.py — always download latest version
+info "Downloading daemon.py..."
+if curl -fsSL "$DAEMON_SRC" -o "$FORGE_CFG/daemon.py" 2>/dev/null; then
+  ok "daemon.py downloaded (latest)"
 else
-  if curl -fsSL "$DAEMON_SRC" -o "$FORGE_CFG/daemon.py" 2>/dev/null; then
-    ok "daemon.py downloaded"
-  else
-    err "Could not download daemon.py from $DAEMON_SRC"
-    warn "Manual step: Copy daemon.py to ~/.forge/daemon.py"
-    SKIP_START=true
-  fi
+  err "Could not download daemon.py from $DAEMON_SRC"
+  warn "Manual step: Copy daemon.py to ~/.forge/daemon.py"
+  SKIP_START=true
 fi
 
 # dashboard.html
@@ -804,7 +801,21 @@ echo -e "${BOLD}${GREEN}╔═════════════════�
 echo -e "${BOLD}${GREEN}║         Forge installed successfully       ║${RESET}"
 echo -e "${BOLD}${GREEN}╚═══════════════════════════════════════════╝${RESET}"
 echo ""
-echo "  Commands:"
+
+# Auto-open dashboard on macOS
+if [[ "$(uname)" == "Darwin" ]] && [[ -f "$FORGE_CFG/dashboard.html" ]]; then
+  info "Opening dashboard..."
+  open "$FORGE_CFG/dashboard.html"
+fi
+
+echo -e "${BOLD}${YELLOW}  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "${BOLD}${YELLOW}  STEP 1 — Run this now to activate commands:${RESET}"
+echo ""
+echo -e "     ${BOLD}source ~/.zshrc${RESET}"
+echo ""
+echo -e "${BOLD}${YELLOW}  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo ""
+echo "  STEP 2 — Then use these commands:"
 echo "    forge           — open dashboard"
 echo "    forge-restart   — restart daemon"
 echo "    forge-setup     — reconfigure credentials"
@@ -814,11 +825,3 @@ echo "    forge-stop      — stop daemon"
 echo ""
 echo "  Workspace: ~/Forge/"
 echo ""
-echo "  Reload shell first:  source ~/.zshrc"
-echo ""
-
-# Auto-open dashboard on macOS
-if [[ "$(uname)" == "Darwin" ]] && [[ -f "$FORGE_CFG/dashboard.html" ]]; then
-  info "Opening dashboard..."
-  open "$FORGE_CFG/dashboard.html"
-fi
