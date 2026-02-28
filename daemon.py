@@ -2094,12 +2094,11 @@ def _telegram_poll_loop():
                 except Exception as e:
                     reply = f"Error processing message: {e}"
 
-                # Send reply
+                # Send reply — no parse_mode to avoid Markdown escaping errors
                 try:
                     payload = json.dumps({
                         "chat_id": from_id,
                         "text":    reply[:4000],
-                        "parse_mode": "Markdown"
                     }).encode()
                     resp_req = urllib.request.Request(
                         f"https://api.telegram.org/bot{token}/sendMessage",
