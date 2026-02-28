@@ -664,14 +664,16 @@ class ForgeAI:
 
         try:
             # Build input array (Codex CLI format — not messages[])
+            # user messages → input_text, assistant messages → output_text
             input_items = []
             for m in messages[-10:]:
                 role = m.get("role", "user")
                 content = m.get("content", "")
+                content_type = "output_text" if role == "assistant" else "input_text"
                 input_items.append({
                     "type": "message",
                     "role": role,
-                    "content": [{"type": "input_text", "text": content}]
+                    "content": [{"type": content_type, "text": content}]
                 })
 
             payload = json.dumps({
