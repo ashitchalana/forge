@@ -30,7 +30,7 @@ CORE_DIR   = FORGE_WS / ".cortex_brain" / "core"
 DB_PATH    = FORGE_CFG / "forge.db"
 CFG_PATH   = FORGE_CFG / "forge.json"
 PORT           = 2079
-SYNFICTION_DIR = HOME / "synfiction files" / "synfiction"
+
 
 # ── LOGGING ───────────────────────────────────────────────
 (FORGE_CFG / "logs").mkdir(parents=True, exist_ok=True)
@@ -1942,82 +1942,6 @@ def _nightly_loop():
 
 # ── SCHEDULED JOBS ────────────────────────────────────────
 
-def _sched_seo():
-    """11PM nightly — SEO audit and improvements for Synfiction."""
-    cfg = load_cfg()
-    log.info("Scheduled: SEO run starting")
-    _notify("Forge: Starting nightly SEO audit on Synfiction...", cfg)
-    date_str = datetime.now().strftime("%Y%m%d")
-    prompt = (
-        "You are Forge, autonomous AI assistant for Synfiction.ai — an AI-powered fiction writing platform. "
-        "Perform a technical SEO audit of the Synfiction landing page and blog. "
-        "Check: meta tags, Open Graph tags, structured data/schema, page titles, descriptions, "
-        "canonical URLs, image alt text, heading hierarchy (H1/H2/H3), and internal linking. "
-        "Identify the top 3 quick wins. Implement any that are safe, isolated file edits. "
-        f"Save a detailed report to ~/Forge/research/seo_audit_{date_str}.md with findings and actions taken."
-    )
-    result = _spawn_claude_fresh(prompt, workdir=str(SYNFICTION_DIR), label="seo")
-    summary = (result or "No output")[:400]
-    save_learning("scheduled_seo", f"SEO run {datetime.now().strftime('%Y-%m-%d')}: {summary[:150]}", "scheduler")
-    _notify(f"*Forge SEO Audit done*\n\n{summary}", cfg)
-    log.info(f"Scheduled SEO done: {summary[:80]}")
-
-
-def _sched_competitive_research():
-    """12AM nightly — competitive landscape research for Synfiction."""
-    cfg = load_cfg()
-    log.info("Scheduled: competitive research starting")
-    _notify("Forge: Starting midnight competitive research...", cfg)
-    date_str = datetime.now().strftime("%Y%m%d")
-    prompt = (
-        "You are Forge, autonomous AI for Synfiction.ai — an AI-powered fiction writing platform. "
-        "Research the current competitive landscape: "
-        "1. Check Sudowrite, NovelAI, Jasper, Copy.ai, Notion AI for new features or pricing changes. "
-        "2. Identify any new AI writing or storytelling tools launched recently. "
-        "3. Note trends in user sentiment from public forums (Reddit, Twitter/X, HN, Product Hunt). "
-        "4. Flag 2-3 concrete opportunities Synfiction should act on within 30 days. "
-        f"Save a full report to ~/Forge/research/competitive_{date_str}.md."
-    )
-    result = _spawn_claude_fresh(prompt, workdir=str(FORGE_WS), label="competitive")
-    summary = (result or "No output")[:400]
-    save_learning("competitive_intel", f"Research {datetime.now().strftime('%Y-%m-%d')}: {summary[:150]}", "scheduler")
-    _notify(f"*Forge Competitive Research done*\n\n{summary}", cfg)
-    log.info(f"Scheduled competitive done: {summary[:80]}")
-
-
-def _sched_daily_brief():
-    """9AM daily — send task status and priorities brief to Telegram."""
-    cfg = load_cfg()
-    log.info("Scheduled: daily brief")
-    try:
-        c = _db()
-        backlog  = c.execute("SELECT COUNT(*) FROM tasks WHERE status NOT IN ('completed')").fetchone()[0]
-        in_prog  = c.execute("SELECT COUNT(*) FROM tasks WHERE status IN ('running','in_progress')").fetchone()[0]
-        done_24h = c.execute(
-            "SELECT COUNT(*) FROM tasks WHERE status='completed' AND completed > ?",
-            ((datetime.now() - timedelta(hours=24)).isoformat(),)
-        ).fetchone()[0]
-        top_tasks = c.execute(
-            "SELECT title, priority FROM tasks WHERE status NOT IN ('completed') ORDER BY id DESC LIMIT 5"
-        ).fetchall()
-        c.close()
-
-        task_lines = "\n".join(f"  • {r[0][:55]} [{r[1] or 'P3'}]" for r in top_tasks) or "  None"
-        name = get_agent_name()
-        brief = (
-            f"Good morning, Ash.\n\n"
-            f"*{name} — Daily Brief {datetime.now().strftime('%a %d %b')}*\n\n"
-            f"Tasks: {in_prog} in progress | {backlog} open | {done_24h} completed last 24h\n\n"
-            f"Top open:\n{task_lines}\n\n"
-            f"Memory: {mem_count():,} entries | Mode: {'GOD' if god_mode_active() else 'standard'}\n\n"
-            f"Standing by."
-        )
-        _notify(brief, cfg)
-        log.info("Daily brief sent to Telegram")
-    except Exception as e:
-        log.error(f"Daily brief: {e}")
-
-
 # ── MAIN ──────────────────────────────────────────────────
 if __name__ == "__main__":
     init_db()
@@ -2037,16 +1961,13 @@ if __name__ == "__main__":
     # ── Scheduler ─────────────────────────────────────────────
     if HAS_APSCHEDULER:
         scheduler = BackgroundScheduler(daemon=True)
-        scheduler.add_job(run_heartbeat,              'interval', minutes=30, id='heartbeat',
+        scheduler.add_job(run_heartbeat, 'interval', minutes=30, id='heartbeat',
                           next_run_time=datetime.now())
-        scheduler.add_job(_sched_seo,                 'cron', hour=23, minute=0,  id='seo_nightly')
-        scheduler.add_job(_sched_competitive_research,'cron', hour=0,  minute=0,  id='competitive')
-        scheduler.add_job(_sched_daily_brief,         'cron', hour=9,  minute=0,  id='daily_brief')
         if god_mode_active():
             scheduler.add_job(_god_cycle, 'cron', hour=3, minute=0, id='god_cycle',
                               kwargs={"cfg": load_cfg()})
         scheduler.start()
-        log.info("APScheduler running — heartbeat:30m | SEO:11PM | research:12AM | brief:9AM")
+        log.info("APScheduler running — heartbeat:30m")
     else:
         log.warning("APScheduler not found — install with: pip3 install apscheduler")
         log.warning("Falling back to thread-based loops (no SEO/research/brief schedules)")
