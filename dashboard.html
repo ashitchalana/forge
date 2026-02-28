@@ -2927,7 +2927,7 @@ input:focus, textarea:focus, select:focus {
           <div class="stab-group-title">Session</div>
           <div class="sys-status-row">
             <div class="sys-status-key">Dashboard version</div>
-            <div class="sys-status-val">v3.0 — Luxury Edition</div>
+            <div class="sys-status-val">v1</div>
           </div>
           <div class="sys-status-row">
             <div class="sys-status-key">DB path</div>
@@ -2935,7 +2935,7 @@ input:focus, textarea:focus, select:focus {
           </div>
           <div class="sys-status-row">
             <div class="sys-status-key">Brain path</div>
-            <div class="sys-status-val" style="font-size:10px">~/Forge/.cortex_brain/core/</div>
+            <div class="sys-status-val" style="font-size:10px">~/Forge/.forge_brain/core/</div>
           </div>
         </div>
       </div>
@@ -3146,6 +3146,21 @@ let theme     = localStorage.getItem('forge-theme') || 'light';
 const API     = 'http://localhost:2079';
 
 document.body.setAttribute('data-theme', theme);
+
+// Restore saved accent colour
+(function() {
+  const accentMap = { purple:'#6d28d9', indigo:'#4f46e5', blue:'#2563eb', teal:'#0d9488', rose:'#e11d48' };
+  const saved = localStorage.getItem('forge-accent');
+  if (saved && accentMap[saved]) {
+    document.documentElement.style.setProperty('--acc', accentMap[saved]);
+    document.documentElement.style.setProperty('--acc2', accentMap[saved]);
+    document.addEventListener('DOMContentLoaded', () => {
+      const el = document.querySelector(`.accent-swatch[title="${saved.charAt(0).toUpperCase()+saved.slice(1)}"]`) ||
+                 document.querySelector(`.accent-swatch[title="${saved.charAt(0).toUpperCase()+saved.slice(1)} (default)"]`);
+      if (el) { document.querySelectorAll('.accent-swatch').forEach(s => s.classList.remove('selected')); el.classList.add('selected'); el.style.boxShadow = `0 0 0 3px ${accentMap[saved]}40`; }
+    });
+  }
+})();
 
 // ══════════════════════════════════════════
 //  API
@@ -3455,7 +3470,7 @@ function switchView(name, btn) {
 
   if (name === 'memory')    loadMemory();
   if (name === 'heartbeat') loadHeartbeats();
-  if (name === 'settings')  { loadStatus(); updateSettingsStatusBadges(); }
+  if (name === 'settings')  { loadStatus(); updateSettingsStatusBadges(); loadSystemStats(); }
   if (name === 'mission')   loadMissionControl();
   if (name === 'channels')  loadChannelStatuses();
 }
@@ -3524,6 +3539,39 @@ async function loadHeartbeats() {
   }
 
   renderHeartbeatTimeline(data);
+
+  // Last heartbeat + next scheduled
+  const last = data[0];
+  const lastStatusEl = document.getElementById('hb-last-status');
+  if (lastStatusEl) {
+    if (last) {
+      const ts = (last.timestamp || '').slice(0, 16).replace('T', ' ');
+      lastStatusEl.textContent = ts || last.status;
+      lastStatusEl.className = 'badge ' + (last.status === 'ok' ? 'badge-ok' : last.status === 'warn' ? 'badge-warn' : 'badge-error');
+    } else {
+      lastStatusEl.textContent = 'No data yet';
+      lastStatusEl.className = 'badge badge-pending';
+    }
+  }
+  const nextEl = document.getElementById('hb-next');
+  const nextLabelEl = document.getElementById('hb-next-label');
+  if (last && last.timestamp) {
+    const nextTime = new Date(new Date(last.timestamp).getTime() + 30 * 60 * 1000);
+    const now = new Date();
+    const diffMs = nextTime - now;
+    if (diffMs > 0) {
+      const mins = Math.round(diffMs / 60000);
+      const timeStr = nextTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (nextEl) nextEl.textContent = `in ${mins}m (${timeStr})`;
+      if (nextLabelEl) nextLabelEl.textContent = `Next: ${timeStr}`;
+    } else {
+      if (nextEl) nextEl.textContent = 'due now';
+      if (nextLabelEl) nextLabelEl.textContent = 'Next: due now';
+    }
+  } else {
+    if (nextEl) nextEl.textContent = '—';
+    if (nextLabelEl) nextLabelEl.textContent = 'Next: —';
+  }
 }
 
 async function toggleHeartbeat(key) {
@@ -4214,6 +4262,9 @@ function switchSettingsTab(btn, section) {
   const pane = document.getElementById('stab-' + section);
   if (pane) pane.classList.add('visible');
   if (section === 'appearance') syncThemePreviews();
+  if (section === 'system') loadSystemStats();
+  if (section === 'model') renderModelCards(curProvider || 'anthropic', curModel);
+  if (section === 'heartbeat') loadHeartbeats();
 }
 
 function selectModel(card) {
@@ -4242,24 +4293,26 @@ function syncThemePreviews() {
 }
 
 function setAccent(name, el) {
-  const map = { purple:'#6d28d9', indigo:'#4f46e5', blue:'#2563eb', teal:'#0d9488' };
+  const map = { purple:'#6d28d9', indigo:'#4f46e5', blue:'#2563eb', teal:'#0d9488', rose:'#e11d48' };
   const col = map[name];
   if (!col) return;
   document.documentElement.style.setProperty('--acc', col);
   document.documentElement.style.setProperty('--acc2', col);
-  document.querySelectorAll('[style*="box-shadow:0 0 0 3px"]').forEach(d => d.style.boxShadow = '');
+  document.querySelectorAll('.accent-swatch').forEach(s => { s.style.boxShadow = ''; s.classList.remove('selected'); });
+  el.classList.add('selected');
   el.style.boxShadow = `0 0 0 3px ${col}40`;
+  localStorage.setItem('forge-accent', name);
 }
 
 function updateSettingsStatusBadges() {
   // called when settings opens — status already loaded via loadStatus
   api('/status').then(d => {
-    const tg = d.channels?.telegram?.enabled;
-    const dc = d.channels?.discord?.enabled;
+    const tg = d.channels?.telegram?.enabled && d.channels?.telegram?.bot_token;
+    const dc = d.channels?.discord?.enabled  && d.channels?.discord?.bot_token;
     const tgBadge = document.getElementById('stab-tg-badge');
     const dcBadge = document.getElementById('stab-dc-badge');
-    if (tgBadge) { tgBadge.className = 'badge ' + (tg ? 'badge-ok' : 'badge-pending'); tgBadge.textContent = tg ? 'active' : 'not set'; }
-    if (dcBadge) { dcBadge.className = 'badge ' + (dc ? 'badge-ok' : 'badge-pending'); dcBadge.textContent = dc ? 'active' : 'not set'; }
+    if (tgBadge) { tgBadge.className = 'badge ' + (tg ? 'badge-ok' : 'badge-error'); tgBadge.textContent = tg ? 'active' : 'not set'; }
+    if (dcBadge) { dcBadge.className = 'badge ' + (dc ? 'badge-ok' : 'badge-error'); dcBadge.textContent = dc ? 'active' : 'not set'; }
     // Update usage stats
     const mem = d.memories || 0;
     const memBar = document.getElementById('usage-mem-bar');
