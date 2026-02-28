@@ -289,8 +289,8 @@ body::before {
 
 .sidebar-label {
   font-size: 9px;
-  font-weight: 600;
-  letter-spacing: .14em;
+  font-weight: 700;
+  letter-spacing: .07em;
   text-transform: uppercase;
   color: var(--tx4);
   padding: 10px 16px 5px;
@@ -539,7 +539,7 @@ body::before {
   padding: 40px;
 }
 .empty-logo { margin-bottom: 8px; opacity: .5; }
-.empty-title { font-family: var(--font-d); font-size: 16px; font-weight: 700; color: var(--tx3); letter-spacing: .08em; }
+.empty-title { font-family: var(--font-d); font-size: 16px; font-weight: 700; color: var(--tx3); letter-spacing: .03em; }
 .empty-sub { font-size: 12px; text-align: center; line-height: 1.7; max-width: 280px; }
 
 /* ── INPUT ── */
@@ -791,14 +791,14 @@ body::before {
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 .stab-group-title {
-  padding: 13px 18px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--bd);
   font-size: 10px;
   font-weight: 700;
   color: var(--tx3);
   background: var(--bg2);
-  font-family: var(--font-d);
-  letter-spacing: 0.10em;
+  font-family: var(--font-b);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -1567,9 +1567,9 @@ body::before {
 /* ── PREMIUM TOPBAR BRAND ── */
 .brand-name {
   font-family: var(--font-d);
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.22em;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   color: var(--tx);
   text-transform: uppercase;
   transition: background 0.2s, -webkit-text-fill-color 0.2s;
@@ -2011,19 +2011,89 @@ input:focus, textarea:focus, select:focus {
 /* View title typography */
 .view-title {
   font-family: var(--font-d);
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: var(--tx);
   line-height: 1;
 }
 .view-sub {
   font-size: 11px;
   color: var(--tx4);
-  margin-top: 4px;
+  margin-top: 3px;
   font-family: var(--font-b);
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
+
+/* ── MISSION CONTROL SECTIONS ── */
+.mc-body {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.mc-section {
+  padding: 20px 24px;
+  flex-shrink: 0;
+}
+.mc-section + .mc-section {
+  border-top: 1px solid var(--bd);
+}
+.mc-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.mc-section-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--tx4);
+}
+.mc-section-action {
+  font-size: 10px;
+  color: var(--acc);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: var(--font-b);
+  padding: 0;
+  transition: opacity .15s;
+}
+.mc-section-action:hover { opacity: .7; }
+
+/* Kanban refinement */
+.kanban { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.kanban-col {
+  background: transparent;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  padding: 10px;
+  min-height: 220px;
+}
+[data-theme="dark"] .kanban-col { background: rgba(255,255,255,.02); }
+.kanban-col-title { font-size:10px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--tx4); }
+.kanban-col-count { font-size:9px; background:var(--bg3); color:var(--tx4); padding:1px 6px; border-radius:20px; font-family:var(--font-m); }
+
+/* Task card refinement */
+.task-card {
+  background:rgba(255,255,255,0.68);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--bd);
+  border-radius:9px;
+  padding:12px 12px 0 12px;
+  margin-bottom:6px;
+  cursor:pointer;
+  transition: var(--transition-smooth);
+  overflow:hidden;
+}
+[data-theme="dark"] .task-card { background:rgba(15,13,28,0.55); }
+.task-card:hover { border-color:var(--bd2); box-shadow:var(--sh3); transform:translateY(-1px); }
+.task-title { font-size:12px; font-weight:500; color:var(--tx); line-height:1.45; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:0; }
 
 /* ── PRIORITY CHIPS (modal) ── */
 .priority-chips { display:flex; gap:6px; flex-wrap:wrap; }
@@ -2248,23 +2318,34 @@ input:focus, textarea:focus, select:focus {
           <div class="view-title">Mission Control</div>
           <div class="view-sub" id="mc-sub">Loading…</div>
         </div>
-        <button class="btn btn-primary" onclick="openNewTaskModal()">+ New Task</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:10px;font-family:var(--font-m);color:var(--tx4)" id="mc-model-badge"></span>
+          <button class="btn btn-primary" onclick="openNewTaskModal()">+ New Task</button>
+        </div>
       </div>
-      <div style="padding:0 20px 24px;overflow-y:auto;height:calc(100% - 64px)">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx4);margin-bottom:10px">Agents</div>
-        <div class="mc-grid" id="mc-agent-grid">
-          <div style="color:var(--tx4);font-size:11px;padding:8px">Loading agents…</div>
+      <!-- Hidden usage elements kept for JS compatibility -->
+      <span id="usage-model" style="display:none"></span>
+      <span id="usage-provider" style="display:none"></span>
+      <span id="usage-memories" style="display:none"></span>
+      <span id="usage-agents" style="display:none"></span>
+      <span id="usage-tasks" style="display:none"></span>
+      <div class="mc-body">
+        <div class="mc-section">
+          <div class="mc-section-head">
+            <span class="mc-section-title">Agents</span>
+            <button class="mc-section-action" onclick="openOverlay('spawn-modal')">+ Spawn Agent</button>
+          </div>
+          <div class="mc-grid" id="mc-agent-grid">
+            <div style="color:var(--tx4);font-size:11px;padding:8px">Loading…</div>
+          </div>
         </div>
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx4);margin-bottom:10px">Task Board</div>
-        <div class="usage-bar" id="usage-bar">
-          <div class="usage-stat"><span class="usage-dot"></span><strong id="usage-model">—</strong></div>
-          <div class="usage-stat">Provider: <strong id="usage-provider">—</strong></div>
-          <div class="usage-stat">Memories: <strong id="usage-memories">—</strong></div>
-          <div class="usage-stat">Agents: <strong id="usage-agents">—</strong></div>
-          <div class="usage-stat">Tasks: <strong id="usage-tasks">—</strong></div>
-        </div>
-        <div class="kanban" id="kanban-board">
-          <div style="color:var(--tx4);font-size:11px;padding:8px">Loading tasks…</div>
+        <div class="mc-section" style="flex:1">
+          <div class="mc-section-head">
+            <span class="mc-section-title">Task Board</span>
+          </div>
+          <div class="kanban" id="kanban-board">
+            <div style="color:var(--tx4);font-size:11px;padding:8px">Loading…</div>
+          </div>
         </div>
       </div>
     </div>
@@ -3135,8 +3216,9 @@ async function loadStatus() {
     curProvider = d.provider;
     curModel    = d.primary_model || curModel;
     renderModelCards(d.provider, d.primary_model);
+    populateModels(); // refresh chat model selector to show only this provider's models
   }
-  // Update usage bar
+  // Update hidden usage elements (kept for compatibility)
   const uModel = document.getElementById('usage-model');
   const uProv  = document.getElementById('usage-provider');
   const uMem   = document.getElementById('usage-memories');
@@ -3147,6 +3229,9 @@ async function loadStatus() {
   if (uMem)   uMem.textContent   = d.memories || 0;
   if (uAg)    uAg.textContent    = d.agents || 1;
   if (uTasks) uTasks.textContent = d.tasks || 0;
+  // Update model badge in Mission Control header
+  const mcBadge = document.getElementById('mc-model-badge');
+  if (mcBadge && d.primary_model) mcBadge.textContent = d.primary_model;
 
   // Update agent name everywhere dynamically
   const agentName = d.name || 'FORGE';
@@ -3188,24 +3273,27 @@ async function loadStatus() {
 
 function populateModels() {
   const sel = document.getElementById('model-select');
-  const models = [
-    { v:'claude-opus-4-6',          l:'Claude Opus 4' },
-    { v:'claude-sonnet-4-6',        l:'Claude Sonnet 4' },
-    { v:'claude-haiku-4-5-20251001',l:'Claude Haiku 4' },
-    { v:'gpt-4.5',                  l:'GPT-4.5' },
-    { v:'gpt-4.5-mini',             l:'GPT-4.5 Mini' },
-    { v:'gpt-4.5-codex',            l:'GPT-4.5 Codex' },
-    { v:'gpt-5.1',                  l:'GPT-5.1' },
-    { v:'gpt-5.1-codex',            l:'GPT-5.1 Codex' },
-    { v:'gpt-5.2',                  l:'GPT-5.2' },
-    { v:'gpt-5.2-codex',            l:'GPT-5.2 Codex' },
-    { v:'gpt-4o',                   l:'GPT-4o' },
-    { v:'o1',                       l:'OpenAI o1' },
-    { v:'gemini-1.5-pro',           l:'Gemini 1.5 Pro' },
-    { v:'gemini-1.5-flash',         l:'Gemini 1.5 Flash' },
-    { v:'moonshot-v1-128k',         l:'Moonshot v1 128k' },
-    { v:'doubao-pro-256k',          l:'Doubao Pro 256k' },
-  ];
+  if (!sel) return;
+  const modelSets = {
+    anthropic: [
+      { v:'claude-haiku-4-5-20251001', l:'Haiku 4 — Fast' },
+      { v:'claude-sonnet-4-6',         l:'Sonnet 4 — Balanced' },
+      { v:'claude-opus-4-6',           l:'Opus 4 — Most Capable' },
+    ],
+    openai: [
+      { v:'gpt-4o',          l:'GPT-4o' },
+      { v:'gpt-4.5',         l:'GPT-4.5' },
+      { v:'gpt-5.2',         l:'GPT-5.2' },
+      { v:'gpt-5.2-codex',   l:'GPT-5.2 Codex' },
+    ],
+    google: [
+      { v:'gemini-2.5-pro',   l:'Gemini 2.5 Pro' },
+      { v:'gemini-2.5-flash', l:'Gemini 2.5 Flash' },
+      { v:'gemini-2.0-flash', l:'Gemini 2.0 Flash' },
+      { v:'gemini-1.5-pro',   l:'Gemini 1.5 Pro' },
+    ],
+  };
+  const models = modelSets[curProvider] || modelSets.anthropic;
   sel.innerHTML = models.map(m =>
     `<option value="${m.v}" ${m.v===curModel?'selected':''}>${m.l}</option>`
   ).join('');
@@ -3793,17 +3881,17 @@ function renderMcAgentGrid() {
     const pct = Math.min((count / 5) * 100, 100);
     const barColor = status === 'idle' ? 'var(--green)' : status === 'working' ? 'var(--amber)' : 'var(--red)';
     return `<div class="mc-agent-card" style="animation-delay:${i*0.06}s" onclick="selectAgent('${a.name}',document.getElementById('ag-${a.name}'))">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:13px;font-weight:700;font-family:var(--font-d);color:var(--tx)">${a.name}</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:600;color:var(--tx);letter-spacing:.01em">${a.name}</span>
         <div class="mc-status-dot ${status}"></div>
       </div>
-      <div style="font-size:10px;color:var(--tx4);margin-bottom:10px">${a.role||'Agent'}</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:10px;color:var(--tx4);margin-bottom:10px;letter-spacing:0">${a.role||'Agent'}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
         <span style="font-size:10px;color:var(--tx3)">${statusLabel}</span>
-        <span style="font-size:10px;color:var(--tx4)">${count}/5 tasks</span>
+        <span style="font-size:9px;color:var(--tx4);font-family:var(--font-m)">${count}/5</span>
       </div>
       <div class="task-progress-bar"><div class="task-progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
-      ${a.model ? `<div style="margin-top:9px"><span style="font-size:9px;background:var(--bg3);color:var(--tx3);padding:2px 7px;border-radius:4px;font-family:var(--font-m)">${a.model}</span></div>` : ''}
+      ${a.model ? `<div style="margin-top:8px"><span style="font-size:9px;background:var(--bg3);color:var(--tx3);padding:2px 7px;border-radius:4px;font-family:var(--font-m);letter-spacing:.02em">${a.model}</span></div>` : ''}
     </div>`;
   }).join('') + `<div class="mc-agent-card mc-spawn-card" onclick="openOverlay('spawn-modal')">
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2v12M2 8h12"/></svg>
