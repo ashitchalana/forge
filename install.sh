@@ -43,7 +43,7 @@ clear
 echo ""
 echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════╗${RESET}"
 echo -e "${BOLD}${CYAN}║           FORGE — Personal AGI            ║${RESET}"
-echo -e "${BOLD}${CYAN}║          Installer v1.3 for macOS         ║${RESET}"
+echo -e "${BOLD}${CYAN}║          Installer v1.4 for macOS         ║${RESET}"
 echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════╝${RESET}"
 echo ""
 echo -e "  Sets up your personal AI brain on this Mac."
@@ -187,13 +187,15 @@ pip3 install --quiet --break-system-packages anthropic apscheduler 2>/dev/null |
   pip3 install --quiet anthropic apscheduler 2>/dev/null || true
 ok "Python packages ready"
 
-# Claude CLI
-if ! command -v claude &>/dev/null; then
-  info "Claude CLI not found — installing..."
-  npm install -g @anthropic-ai/claude-code
-  ok "Claude CLI installed"
-else
-  ok "Claude CLI already installed ($(claude --version 2>/dev/null || echo 'installed'))"
+# Claude CLI — only install if user chose Claude as provider
+if [[ "$CLAUDE_OAUTH" == true ]] || [[ -n "$CLAUDE_API_KEY" ]]; then
+  if ! command -v claude &>/dev/null; then
+    info "Claude CLI not found — installing..."
+    npm install -g @anthropic-ai/claude-code
+    ok "Claude CLI installed"
+  else
+    ok "Claude CLI already installed ($(claude --version 2>/dev/null || echo 'installed'))"
+  fi
 fi
 
 # ════════════════════════════════════════════════════════════════
@@ -542,7 +544,7 @@ from urllib.error import URLError
 TOKEN_FILE = Path("$OPENAI_TOKEN_FILE")
 CALLBACK_PORT = 1455
 REDIRECT_URI = f"http://127.0.0.1:{CALLBACK_PORT}/auth/callback"
-CLIENT_ID    = "app_Dh2mBSMBbHuXS7jyqoFjAdaU"
+CLIENT_ID    = "app_EMoamEEZ73f0CkXaXp7hrann"
 AUTH_URL     = "https://auth.openai.com/oauth/authorize"
 TOKEN_URL    = "https://auth.openai.com/oauth/token"
 SCOPES       = "openid email profile offline_access"
