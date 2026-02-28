@@ -2238,7 +2238,7 @@ input:focus, textarea:focus, select:focus {
         <!-- Spark streak -->
         <path d="M26.2 6.2 L29.2 7.8" stroke="#fde68a" stroke-width="0.55" stroke-linecap="round" opacity="0.55"/>
       </svg>
-      <span class="brand-name">FORGE</span><span class="brand-v2">v3</span>
+      <span class="brand-name" id="brand-name-label">FORGE</span><span class="brand-v2">v1</span>
     </div>
 
     <div class="top-center">
@@ -3229,11 +3229,14 @@ async function loadStatus() {
   if (mcBadge && d.primary_model) mcBadge.textContent = d.primary_model;
 
   // Update agent name everywhere dynamically
-  const agentName = d.name || 'FORGE';
+  const agentName = (d.name || 'FORGE').toUpperCase();
   const providerLabel = d.provider ? `${d.provider} · ${d.primary_model || ''}` : 'active';
   const sidebarName = document.getElementById('sidebar-agent-name');
   const sidebarRole = document.getElementById('sidebar-agent-role');
   const chatName    = document.getElementById('chat-agent-name');
+  window._forgeName = agentName;
+  const brandLabel  = document.getElementById('brand-name-label');
+  if (brandLabel)  brandLabel.textContent  = agentName;
   if (sidebarName) sidebarName.textContent = agentName;
   if (sidebarRole) sidebarRole.textContent = `Master · ${d.provider || 'active'}`;
   if (chatName && chatName.dataset.locked !== 'true') chatName.textContent = agentName;
@@ -4323,7 +4326,7 @@ async function loadMemory() {
   const data = await api('/learnings').catch(()=>[]);
   allMemories = data;
   const lbl = document.getElementById('memory-count-label');
-  if (lbl) lbl.textContent = `Forge's persistent knowledge base`;
+  if (lbl) lbl.textContent = `${(window._forgeName||'Forge')}'s persistent knowledge base`;
 
   // Build category chips
   const cats = ['all', ...new Set(data.map(m => m.category || 'general'))];
