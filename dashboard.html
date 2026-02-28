@@ -2548,10 +2548,10 @@ input:focus, textarea:focus, select:focus {
           <span class="stab-last-saved" id="profile-saved-ts">Not saved yet</span>
         </div>
         <div class="profile-hero-row">
-          <div class="profile-avatar" id="profile-avatar-initials">A</div>
+          <div class="profile-avatar" id="profile-avatar-initials">?</div>
           <div class="profile-hero-info">
-            <div class="profile-name" id="profile-display-name">Ash</div>
-            <div class="profile-workspace">Forge Workspace</div>
+            <div class="profile-name" id="profile-display-name">Loading…</div>
+            <div class="profile-workspace" id="profile-workspace-label">Forge Workspace</div>
             <div class="workspace-badge">
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="3"/></svg>
               ACTIVE
@@ -2566,14 +2566,14 @@ input:focus, textarea:focus, select:focus {
           </div>
           <div class="stab-row">
             <div><div class="stab-row-key">Brand</div><div class="stab-row-desc">System and product identity</div></div>
-            <input class="stab-input" value="Forge" readonly style="opacity:0.5;cursor:default">
+            <input class="stab-input" id="cfg-brand-name" value="Forge" readonly style="opacity:0.5;cursor:default">
           </div>
         </div>
         <div class="stab-group">
           <div class="stab-group-title">System</div>
           <div class="stab-row">
             <div><div class="stab-row-key">AI Name</div><div class="stab-row-desc">How the AI identifies itself in chat</div></div>
-            <input class="stab-input" value="Forge" readonly style="opacity:0.5;cursor:default">
+            <input class="stab-input" id="cfg-ai-name" value="Forge" readonly style="opacity:0.5;cursor:default">
           </div>
           <div class="stab-row">
             <div><div class="stab-row-key">Active model</div><div class="stab-row-desc">Current inference model</div></div>
@@ -2614,39 +2614,7 @@ input:focus, textarea:focus, select:focus {
         <div class="stab-group">
           <div class="stab-group-title">Model Selection</div>
           <div class="model-cards-grid" id="model-cards">
-            <div class="model-card" data-model="claude-haiku-4-5-20251001" onclick="selectModelCard(this)">
-              <div class="model-card-check">
-                <svg width="8" height="8" viewBox="0 0 12 12" fill="white"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </div>
-              <div class="model-card-name">Haiku</div>
-              <div class="model-card-desc">Fastest responses. Best for quick tasks and real-time operations.</div>
-              <div class="model-card-badges">
-                <span class="model-badge mb-fast">Fast</span>
-                <span class="model-badge" style="background:rgba(107,114,128,.1);color:#6b7280">Low cost</span>
-              </div>
-            </div>
-            <div class="model-card selected" data-model="claude-sonnet-4-6" onclick="selectModelCard(this)">
-              <div class="model-card-check">
-                <svg width="8" height="8" viewBox="0 0 12 12" fill="white"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </div>
-              <div class="model-card-name">Sonnet</div>
-              <div class="model-card-desc">Balanced intelligence and speed. Forge's default — ideal for most tasks.</div>
-              <div class="model-card-badges">
-                <span class="model-badge mb-balance">Balanced</span>
-                <span class="model-badge mb-smart">Recommended</span>
-              </div>
-            </div>
-            <div class="model-card" data-model="claude-opus-4-6" onclick="selectModelCard(this)">
-              <div class="model-card-check">
-                <svg width="8" height="8" viewBox="0 0 12 12" fill="white"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </div>
-              <div class="model-card-name">Opus</div>
-              <div class="model-card-desc">Maximum intelligence. For complex reasoning, strategy, and deep research.</div>
-              <div class="model-card-badges">
-                <span class="model-badge mb-smart">Most capable</span>
-                <span class="model-badge badge-gold">Premium</span>
-              </div>
-            </div>
+            <!-- Populated dynamically by renderModelCards() based on active provider -->
           </div>
           <div style="padding:14px 18px;border-top:1px solid var(--bd)">
             <div style="font-size:10px;color:var(--tx4)">Current active model: <span style="color:var(--tx2);font-family:var(--font-m)" id="cfg-primary-model">Loading…</span></div>
@@ -3069,6 +3037,18 @@ async function loadStatus() {
   document.getElementById('cfg-owner').value         = d.owner || '';
   document.getElementById('cfg-primary-model').value = d.primary_model || '';
 
+  // Update profile hero
+  updateProfileHero(d.owner);
+  const aiNameEl   = document.getElementById('cfg-ai-name');
+  const brandNameEl = document.getElementById('cfg-brand-name');
+  const workspaceEl = document.getElementById('profile-workspace-label');
+  if (aiNameEl)    aiNameEl.value   = d.name || 'Forge';
+  if (brandNameEl) brandNameEl.value = d.name || 'Forge';
+  if (workspaceEl) workspaceEl.textContent = `${d.name || 'Forge'} Workspace · ${d.provider || 'AI'}`;
+
+  // Render model cards for this provider
+  if (d.provider) renderModelCards(d.provider, d.primary_model);
+
   // Update agent name everywhere dynamically
   const agentName = d.name || 'FORGE';
   const providerLabel = d.provider ? `${d.provider} · ${d.primary_model || ''}` : 'active';
@@ -3439,6 +3419,44 @@ function updateProfileHero(val) {
   const avatarEl = document.getElementById('profile-avatar-initials');
   if (nameEl) nameEl.textContent = val || 'User';
   if (avatarEl) avatarEl.textContent = (val || 'U').charAt(0).toUpperCase();
+}
+
+function renderModelCards(provider, currentModel) {
+  const grid = document.getElementById('model-cards');
+  if (!grid) return;
+
+  const modelSets = {
+    anthropic: [
+      { id:'claude-haiku-4-5-20251001', name:'Haiku 4',    desc:'Fastest responses. Best for quick tasks.',         badges:[{l:'Fast',c:'mb-fast'},{l:'Low cost',c:''}] },
+      { id:'claude-sonnet-4-6',         name:'Sonnet 4',   desc:'Balanced intelligence and speed. Recommended.',    badges:[{l:'Balanced',c:'mb-balance'},{l:'Recommended',c:'mb-smart'}] },
+      { id:'claude-opus-4-6',           name:'Opus 4',     desc:'Maximum intelligence. Deep reasoning and strategy.',badges:[{l:'Most capable',c:'mb-smart'},{l:'Premium',c:'badge-gold'}] },
+    ],
+    openai: [
+      { id:'gpt-4.5',                   name:'GPT-4.5',         desc:'Latest GPT generation. Powerful and fast.',        badges:[{l:'Latest',c:'mb-smart'},{l:'Fast',c:'mb-fast'}] },
+      { id:'gpt-5.1-codex',             name:'GPT-5.1 Codex',   desc:'Optimised for coding and technical tasks.',        badges:[{l:'Code',c:'mb-balance'},{l:'Technical',c:''}] },
+      { id:'gpt-5.2',                   name:'GPT-5.2',         desc:'Most capable OpenAI model. Full intelligence.',    badges:[{l:'Most capable',c:'mb-smart'},{l:'Premium',c:'badge-gold'}] },
+      { id:'gpt-5.2-codex',             name:'GPT-5.2 Codex',   desc:'Top Codex variant. Best for autonomous tasks.',    badges:[{l:'Autonomous',c:'mb-smart'},{l:'Codex',c:'mb-balance'}] },
+      { id:'gpt-4o',                    name:'GPT-4o',          desc:'Reliable multimodal model.',                       badges:[{l:'Reliable',c:'mb-fast'},{l:'Multimodal',c:''}] },
+    ],
+    google: [
+      { id:'gemini-2.0-flash',          name:'Gemini 2 Flash',  desc:'Fast and efficient. Great for most tasks.',        badges:[{l:'Fast',c:'mb-fast'},{l:'Efficient',c:''}] },
+      { id:'gemini-1.5-pro',            name:'Gemini 1.5 Pro',  desc:'Full Gemini capability. Complex reasoning.',       badges:[{l:'Balanced',c:'mb-balance'},{l:'Capable',c:'mb-smart'}] },
+    ],
+  };
+
+  const cards = modelSets[provider] || modelSets.anthropic;
+  const checkSvg = `<svg width="8" height="8" viewBox="0 0 12 12" fill="white"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+  grid.innerHTML = cards.map(m => {
+    const sel = m.id === currentModel ? ' selected' : '';
+    const badges = m.badges.map(b => `<span class="model-badge ${b.c}">${b.l}</span>`).join('');
+    return `<div class="model-card${sel}" data-model="${m.id}" onclick="selectModelCard(this)">
+      <div class="model-card-check">${checkSvg}</div>
+      <div class="model-card-name">${m.name}</div>
+      <div class="model-card-desc">${m.desc}</div>
+      <div class="model-card-badges">${badges}</div>
+    </div>`;
+  }).join('');
 }
 
 function renderHeartbeatTimeline(heartbeats) {
