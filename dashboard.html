@@ -2249,9 +2249,6 @@ input:focus, textarea:focus, select:focus {
 
     <div class="top-right">
       <span class="top-clock" id="top-clock"></span>
-      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
-      </button>
       <button class="top-btn" onclick="switchView('channels')">Channels</button>
       <button class="top-btn" onclick="openOverlay('spawn-modal')">New Agent</button>
     </div>
@@ -2770,8 +2767,9 @@ input:focus, textarea:focus, select:focus {
           <div class="model-cards-grid" id="model-cards">
             <!-- Populated dynamically by renderModelCards() based on active provider -->
           </div>
-          <div style="padding:14px 18px;border-top:1px solid var(--bd)">
-            <div style="font-size:10px;color:var(--tx4)">Current active model: <span style="color:var(--tx2);font-family:var(--font-m)" id="cfg-current-model-label">Loading…</span></div>
+          <div style="padding:12px 18px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:11px;color:var(--tx3)">Active model</span>
+            <span style="font-size:12px;font-weight:600;color:var(--acc);font-family:var(--font-m)" id="cfg-current-model-label">—</span>
           </div>
         </div>
         <div style="display:flex;justify-content:flex-end;padding:0 2px">
@@ -2799,16 +2797,6 @@ input:focus, textarea:focus, select:focus {
               <div class="theme-prev-swatch" style="background:linear-gradient(135deg,#07060e,#131022);border:1px solid #1c1930"></div>
               <div class="theme-prev-label">Dark</div>
             </div>
-          </div>
-        </div>
-        <div class="stab-group">
-          <div class="stab-group-title">Accent Color</div>
-          <div style="display:flex;gap:10px;padding:16px 18px;flex-wrap:wrap;align-items:center">
-            <div onclick="setAccent('purple',this)" class="accent-swatch selected" style="width:28px;height:28px;border-radius:50%;background:#6d28d9;cursor:pointer;border:2px solid #6d28d9;box-shadow:0 0 0 3px rgba(109,40,217,.3)" title="Purple (default)"></div>
-            <div onclick="setAccent('indigo',this)" class="accent-swatch" style="width:28px;height:28px;border-radius:50%;background:#4f46e5;cursor:pointer;border:2px solid #4f46e5" title="Indigo"></div>
-            <div onclick="setAccent('blue',this)" class="accent-swatch" style="width:28px;height:28px;border-radius:50%;background:#2563eb;cursor:pointer;border:2px solid #2563eb" title="Blue"></div>
-            <div onclick="setAccent('teal',this)" class="accent-swatch" style="width:28px;height:28px;border-radius:50%;background:#0d9488;cursor:pointer;border:2px solid #0d9488" title="Teal"></div>
-            <div onclick="setAccent('rose',this)" class="accent-swatch" style="width:28px;height:28px;border-radius:50%;background:#e11d48;cursor:pointer;border:2px solid #e11d48" title="Rose"></div>
           </div>
         </div>
       </div>
@@ -3142,25 +3130,30 @@ let curAgent    = 'FORGE';
 let curModel    = '';
 let curProvider = 'anthropic';
 let agents    = [];
-let theme     = localStorage.getItem('forge-theme') || 'light';
-const API     = 'http://localhost:2079';
+const API = 'http://localhost:2079';
 
-document.body.setAttribute('data-theme', theme);
-
-// Restore saved accent colour
-(function() {
-  const accentMap = { purple:'#6d28d9', indigo:'#4f46e5', blue:'#2563eb', teal:'#0d9488', rose:'#e11d48' };
-  const saved = localStorage.getItem('forge-accent');
-  if (saved && accentMap[saved]) {
-    document.documentElement.style.setProperty('--acc', accentMap[saved]);
-    document.documentElement.style.setProperty('--acc2', accentMap[saved]);
-    document.addEventListener('DOMContentLoaded', () => {
-      const el = document.querySelector(`.accent-swatch[title="${saved.charAt(0).toUpperCase()+saved.slice(1)}"]`) ||
-                 document.querySelector(`.accent-swatch[title="${saved.charAt(0).toUpperCase()+saved.slice(1)} (default)"]`);
-      if (el) { document.querySelectorAll('.accent-swatch').forEach(s => s.classList.remove('selected')); el.classList.add('selected'); el.style.boxShadow = `0 0 0 3px ${accentMap[saved]}40`; }
-    });
-  }
-})();
+// Auto theme: dark from 7pm–7am, light otherwise. Manual override stored in localStorage.
+function getAutoTheme() {
+  const h = new Date().getHours();
+  return (h >= 19 || h < 7) ? 'dark' : 'light';
+}
+function applyTheme(t, manual) {
+  theme = t;
+  document.body.setAttribute('data-theme', t);
+  if (manual) localStorage.setItem('forge-theme', t);
+  // sync Appearance previews
+  const pl = document.getElementById('prev-light');
+  const pd = document.getElementById('prev-dark');
+  if (pl) pl.classList.toggle('selected', t === 'light');
+  if (pd) pd.classList.toggle('selected', t === 'dark');
+}
+const savedTheme = localStorage.getItem('forge-theme');
+let theme = savedTheme || getAutoTheme();
+applyTheme(theme, false);
+// Re-evaluate every 5 minutes — only auto-switch if no manual override
+setInterval(() => {
+  if (!localStorage.getItem('forge-theme')) applyTheme(getAutoTheme(), false);
+}, 5 * 60 * 1000);
 
 // ══════════════════════════════════════════
 //  API
@@ -3199,9 +3192,10 @@ async function loadStatus() {
   document.getElementById('p-agents').textContent = d.agents||1;
   document.getElementById('p-model').textContent  = d.primary_model || '—';
   document.getElementById('cfg-owner').value         = d.owner || '';
-  document.getElementById('cfg-primary-model').value = d.primary_model || '';
+  const activeModel = d.primary_model || curModel || '—';
+  document.getElementById('cfg-primary-model').value = activeModel;
   const curModelLabel = document.getElementById('cfg-current-model-label');
-  if (curModelLabel) curModelLabel.textContent = d.primary_model || '—';
+  if (curModelLabel) curModelLabel.textContent = activeModel;
 
   // Update profile hero
   updateProfileHero(d.owner);
@@ -3765,9 +3759,7 @@ document.querySelectorAll('.overlay').forEach(el =>
 //  THEME
 // ══════════════════════════════════════════
 function toggleTheme() {
-  theme = theme === 'light' ? 'dark' : 'light';
-  document.body.setAttribute('data-theme', theme);
-  localStorage.setItem('forge-theme', theme);
+  applyTheme(theme === 'light' ? 'dark' : 'light', true);
 }
 
 // ══════════════════════════════════════════
@@ -4263,7 +4255,11 @@ function switchSettingsTab(btn, section) {
   if (pane) pane.classList.add('visible');
   if (section === 'appearance') syncThemePreviews();
   if (section === 'system') loadSystemStats();
-  if (section === 'model') renderModelCards(curProvider || 'anthropic', curModel);
+  if (section === 'model') {
+    renderModelCards(curProvider || 'anthropic', curModel);
+    const lbl = document.getElementById('cfg-current-model-label');
+    if (lbl) lbl.textContent = curModel || '—';
+  }
   if (section === 'heartbeat') loadHeartbeats();
 }
 
@@ -4276,13 +4272,9 @@ function selectModel(card) {
 }
 
 function setTheme(t, el) {
-  theme = t;
-  document.body.setAttribute('data-theme', t);
-  localStorage.setItem('forge-theme', t);
-  // Update theme preview selection
+  applyTheme(t, true);
   document.querySelectorAll('.theme-prev').forEach(p => p.classList.remove('selected'));
   document.getElementById('prev-' + t)?.classList.add('selected');
-  syncThemePreviews();
 }
 
 function syncThemePreviews() {
