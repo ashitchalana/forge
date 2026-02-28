@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
 #  FORGE INSTALLER — One-command setup for any fresh Mac
-#  Usage: curl -fsSL https://raw.githubusercontent.com/YOUR/forge/main/install.sh | bash
+#  Usage: curl -fsSL https://raw.githubusercontent.com/ashitchalana/forge/main/install.sh | bash
 # ═══════════════════════════════════════════════════════════════
 
 set -euo pipefail
@@ -26,12 +26,16 @@ LOG_DIR="$FORGE_CFG/logs"
 CFG_FILE="$FORGE_CFG/forge.json"
 DAEMON_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/daemon.py"
 
+# ── Fix: ensure interactive prompts work even when piped via curl | bash ──
+# Redirect stdin from /dev/tty so read commands work correctly
+exec </dev/tty
+
 # ── Banner ────────────────────────────────────────────────────
 clear
 echo ""
 echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════╗${RESET}"
 echo -e "${BOLD}${CYAN}║           FORGE — Personal AGI            ║${RESET}"
-echo -e "${BOLD}${CYAN}║          Installer v1.0 for macOS         ║${RESET}"
+echo -e "${BOLD}${CYAN}║          Installer v1.1 for macOS         ║${RESET}"
 echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════╝${RESET}"
 echo ""
 echo -e "  Sets up your personal AI brain on this Mac."
@@ -91,8 +95,6 @@ for choice in $PROVIDER_CHOICE; do
     3)
       ask "OpenAI API key: "
       read -rs OPENAI_API_KEY; echo ""
-      PRIMARY_PROVIDER="openai"
-      PRIMARY_MODEL="gpt-4o"
       ;;
     4)
       ask "Gemini API key: "
@@ -107,6 +109,9 @@ done
 if [[ "$CLAUDE_OAUTH" == true ]] || [[ -n "$CLAUDE_API_KEY" ]]; then
   PRIMARY_PROVIDER="anthropic"
   PRIMARY_MODEL="claude-sonnet-4-6"
+elif [[ -n "$OPENAI_API_KEY" ]]; then
+  PRIMARY_PROVIDER="openai"
+  PRIMARY_MODEL="gpt-4o"
 fi
 
 echo ""
@@ -190,7 +195,55 @@ mkdir -p "$FORGE_WS/notes"
 ok "Directories created"
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 4 — WRITE forge.json CONFIG
+# SECTION 4 — VALIDATE API KEYS
+# ════════════════════════════════════════════════════════════════
+hdr "Validating API keys"
+
+# Validate OpenAI key if provided
+if [[ -n "$OPENAI_API_KEY" ]]; then
+  info "Testing OpenAI API key..."
+  OPENAI_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+    -H "Authorization: Bearer $OPENAI_API_KEY" \
+    "https://api.openai.com/v1/models" 2>/dev/null || echo "000")
+  if [[ "$OPENAI_RESPONSE" == "200" ]]; then
+    ok "OpenAI key valid ✓"
+  elif [[ "$OPENAI_RESPONSE" == "401" ]]; then
+    warn "OpenAI key invalid or expired — check your key at platform.openai.com"
+    ask "Continue anyway? (y/n): "
+    read -r CONTINUE_OPENAI
+    if [[ "$CONTINUE_OPENAI" != "y" && "$CONTINUE_OPENAI" != "Y" ]]; then
+      ask "Enter a new OpenAI API key (or press Enter to skip): "
+      read -rs OPENAI_API_KEY; echo ""
+    fi
+  else
+    warn "Could not reach OpenAI API (HTTP $OPENAI_RESPONSE) — key saved, check connectivity"
+  fi
+fi
+
+# Validate Claude API key if provided
+if [[ -n "$CLAUDE_API_KEY" ]]; then
+  info "Testing Claude API key..."
+  CLAUDE_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+    -H "x-api-key: $CLAUDE_API_KEY" \
+    -H "anthropic-version: 2023-06-01" \
+    "https://api.anthropic.com/v1/models" 2>/dev/null || echo "000")
+  if [[ "$CLAUDE_RESPONSE" == "200" ]]; then
+    ok "Claude API key valid ✓"
+  elif [[ "$CLAUDE_RESPONSE" == "401" ]]; then
+    warn "Claude API key invalid or expired — check console.anthropic.com"
+    ask "Continue anyway? (y/n): "
+    read -r CONTINUE_CLAUDE
+    if [[ "$CONTINUE_CLAUDE" != "y" && "$CONTINUE_CLAUDE" != "Y" ]]; then
+      ask "Enter a new Claude API key (or press Enter to skip): "
+      read -rs CLAUDE_API_KEY; echo ""
+    fi
+  else
+    warn "Could not reach Anthropic API (HTTP $CLAUDE_RESPONSE) — key saved, check connectivity"
+  fi
+fi
+
+# ════════════════════════════════════════════════════════════════
+# SECTION 5 — WRITE forge.json CONFIG
 # ════════════════════════════════════════════════════════════════
 hdr "Writing configuration"
 
@@ -232,7 +285,7 @@ CFGJSON
 ok "forge.json written"
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 5 — CORE IDENTITY FILES (if not already present)
+# SECTION 6 — CORE IDENTITY FILES (if not already present)
 # ════════════════════════════════════════════════════════════════
 hdr "Seeding identity files"
 
@@ -345,7 +398,7 @@ $(date '+%Y-%m-%d %H:%M')
 ok "Identity files ready"
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 6 — DOWNLOAD DAEMON
+# SECTION 7 — DOWNLOAD DAEMON
 # ════════════════════════════════════════════════════════════════
 hdr "Installing Forge daemon"
 
@@ -353,7 +406,7 @@ hdr "Installing Forge daemon"
 if [[ -f "$FORGE_CFG/daemon.py" ]]; then
   ok "daemon.py already present"
 else
-  # Try download — replace URL with your actual source
+  # Try download
   if curl -fsSL "$DAEMON_SRC" -o "$FORGE_CFG/daemon.py" 2>/dev/null; then
     ok "daemon.py downloaded"
   else
@@ -368,13 +421,6 @@ fi
 # Init database
 if [[ -f "$FORGE_CFG/daemon.py" ]]; then
   python3 - <<'PYINIT'
-import sys
-sys.path.insert(0, '/Users/' + __import__('os').environ.get('USER','') + '/.forge')
-try:
-    import daemon as d  # noqa
-except Exception:
-    pass
-
 import sqlite3, os
 from pathlib import Path
 DB = Path.home() / ".forge" / "forge.db"
@@ -394,7 +440,7 @@ PYINIT
 fi
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 7 — SHELL ALIASES + HELPER SCRIPT
+# SECTION 8 — SHELL ALIASES + HELPER SCRIPT
 # ════════════════════════════════════════════════════════════════
 hdr "Setting up shell aliases"
 
@@ -440,7 +486,7 @@ add_alias "forge-stop"    "pkill -f 'daemon.py' && echo 'Forge stopped'"
 ok "Aliases added to .zshrc"
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 8 — CLAUDE OAUTH LOGIN (if selected)
+# SECTION 9 — CLAUDE OAUTH LOGIN (if selected)
 # ════════════════════════════════════════════════════════════════
 if [[ "$CLAUDE_OAUTH" == true ]]; then
   hdr "Claude OAuth Login"
@@ -468,7 +514,7 @@ PYOAUTH
 fi
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 9 — START FORGE
+# SECTION 10 — START FORGE
 # ════════════════════════════════════════════════════════════════
 hdr "Starting Forge"
 
@@ -488,7 +534,7 @@ if [[ "$SKIP_START" != "true" ]] && [[ -f "$FORGE_CFG/daemon.py" ]]; then
 fi
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 10 — TELEGRAM TEST MESSAGE
+# SECTION 11 — TELEGRAM TEST MESSAGE
 # ════════════════════════════════════════════════════════════════
 if [[ -n "$TG_TOKEN" ]] && [[ -n "$TG_USER_ID" ]]; then
   hdr "Sending Telegram confirmation"
