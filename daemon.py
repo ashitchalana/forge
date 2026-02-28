@@ -446,6 +446,19 @@ class ForgeAI:
 
         key = cfg.get("providers", {}).get(provider, {}).get("api_key", "")
 
+        # OpenAI OAuth: load access_token from token file if api_key not set
+        if provider == "openai" and not key:
+            token_file = cfg.get("providers", {}).get("openai", {}).get("token_file", "")
+            if token_file:
+                try:
+                    from pathlib import Path as _TFP
+                    tok = json.loads(_TFP(token_file).read_text())
+                    key = tok.get("access_token", "")
+                    if key:
+                        log.info("OpenAI: using OAuth access token from token file")
+                except Exception as _e:
+                    log.warning(f"OpenAI token file load failed: {_e}")
+
         # Smart routing — check model stack
         active_model_key = cfg.get("active_model", "claude-sonnet-4-6")
         if hasattr(cls, '_last_message') and cls._last_message:
