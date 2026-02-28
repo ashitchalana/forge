@@ -27,12 +27,17 @@
 .kanban { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
 .kanban-col { background:var(--bg2); border-radius:10px; padding:12px; min-height:280px; }
 .kanban-col-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.usage-bar { display:flex; gap:12px; padding:10px 20px; border-bottom:1px solid var(--bd); background:var(--bg); flex-wrap:wrap; align-items:center; }
+.usage-stat { display:flex; align-items:center; gap:6px; font-size:10px; color:var(--tx4); font-family:var(--font-m); }
+.usage-stat strong { color:var(--tx2); font-weight:700; font-size:11px; }
+.usage-dot { width:6px; height:6px; border-radius:50%; background:var(--green); display:inline-block; }
 .kanban-col-title { font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--tx3); }
 .kanban-col-count { font-size:10px; background:var(--bg3); color:var(--tx3); padding:1px 7px; border-radius:20px; }
-.task-card { background:rgba(255,255,255,0.72); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid var(--bd); border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer; transition:all .2s; }
+.task-card { background:rgba(255,255,255,0.72); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid var(--bd); border-radius:10px; padding:14px 14px 0 14px; margin-bottom:8px; cursor:pointer; transition:all .2s; overflow:hidden; }
 [data-theme="dark"] .task-card { background:rgba(15,13,28,0.6); }
-.task-card:hover { border-color:var(--bd2); box-shadow:0 4px 12px var(--glow); }
+.task-card:hover { border-color:var(--bd2); box-shadow:0 4px 16px var(--glow); transform:translateY(-1px); }
 .task-card.age-warn { box-shadow:0 0 0 1px rgba(217,119,6,.35), 0 0 10px rgba(217,119,6,.14); }
+.task-card-body { padding-bottom:12px; }
 .task-title { font-size:12px; font-weight:500; color:var(--tx); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:8px; }
 .task-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .priority-badge { font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px; }
@@ -40,10 +45,20 @@
 .pb-p2 { background:rgba(217,119,6,.12);  color:#d97706; }
 .pb-p3 { background:rgba(59,130,246,.12); color:#3b82f6; }
 .pb-p4 { background:rgba(107,114,128,.12);color:#6b7280; }
-.task-assignee,.task-eta { font-size:10px; color:var(--tx4); }
-.task-progress-wrap { margin-top:8px; }
-.task-progress-bar  { height:3px; background:var(--bg3); border-radius:2px; overflow:hidden; }
-.task-progress-fill { height:100%; background:var(--acc); border-radius:2px; transition:width .5s ease; }
+.task-assignee { font-size:9px; font-weight:700; padding:2px 7px; border-radius:20px; background:rgba(99,102,241,.1); color:var(--acc); letter-spacing:.03em; font-family:var(--font-m); }
+.task-eta { font-size:10px; color:var(--tx4); }
+.assignee-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.assignee-chip { display:flex; align-items:center; gap:5px; padding:5px 10px; border-radius:20px; border:1.5px solid var(--bd); font-size:11px; font-weight:600; cursor:pointer; transition:all .15s; font-family:var(--font-m); color:var(--tx3); background:var(--bg2); }
+.assignee-chip:hover { border-color:var(--bd2); color:var(--tx); }
+.assignee-chip.selected { border-color:var(--acc); background:rgba(99,102,241,.08); color:var(--acc); }
+.assignee-chip-avatar { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:#fff; }
+.task-progress-wrap { margin-top:10px; }
+.task-progress-bar  { height:3px; background:var(--bg3); border-radius:0 0 10px 10px; overflow:hidden; }
+.task-progress-fill { height:100%; background:var(--acc); border-radius:0; transition:width .6s cubic-bezier(.4,0,.2,1); position:relative; }
+.task-progress-fill::after { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.4) 50%,transparent 100%); animation:progress-shimmer 2s infinite; }
+.task-progress-fill.pct-100 { background:var(--green); }
+.task-progress-fill.pct-0 { background:var(--bg3); }
+@keyframes progress-shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
 /* TASK MODAL FIELDS */
 .tmf { margin-bottom:14px; }
 .tmf label { font-size:10px; font-weight:600; color:var(--tx3); display:block; margin-bottom:5px; text-transform:uppercase; letter-spacing:.05em; }
@@ -2167,6 +2182,13 @@ input:focus, textarea:focus, select:focus {
           <div style="color:var(--tx4);font-size:11px;padding:8px">Loading agents…</div>
         </div>
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx4);margin-bottom:10px">Task Board</div>
+        <div class="usage-bar" id="usage-bar">
+          <div class="usage-stat"><span class="usage-dot"></span><strong id="usage-model">—</strong></div>
+          <div class="usage-stat">Provider: <strong id="usage-provider">—</strong></div>
+          <div class="usage-stat">Memories: <strong id="usage-memories">—</strong></div>
+          <div class="usage-stat">Agents: <strong id="usage-agents">—</strong></div>
+          <div class="usage-stat">Tasks: <strong id="usage-tasks">—</strong></div>
+        </div>
         <div class="kanban" id="kanban-board">
           <div style="color:var(--tx4);font-size:11px;padding:8px">Loading tasks…</div>
         </div>
@@ -2834,15 +2856,20 @@ input:focus, textarea:focus, select:focus {
 <!-- TASK DETAIL MODAL -->
 <div class="overlay" id="task-detail-modal">
   <div class="modal" style="max-width:480px;width:100%">
-    <div class="modal-title">Task Detail</div>
-    <div class="modal-sub" id="td-created-wrap">Created: <span id="td-created">—</span></div>
-    <div class="tmf">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+      <div>
+        <div class="modal-title" style="margin-bottom:2px">Task Detail</div>
+        <div class="modal-sub" id="td-created-wrap" style="margin:0">Created: <span id="td-created">—</span></div>
+      </div>
+      <div id="td-status-badge" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--bg3);color:var(--tx3);font-family:var(--font-m);margin-top:2px"></div>
+    </div>
+    <div class="tmf" style="margin-top:16px">
       <label>Title</label>
-      <input id="td-title" placeholder="Task title">
+      <input id="td-title" placeholder="Task title" style="font-size:14px;font-weight:600">
     </div>
     <div class="tmf">
       <label>Description</label>
-      <textarea id="td-description" placeholder="Details, context, notes…"></textarea>
+      <textarea id="td-description" placeholder="Details, context, notes…" style="min-height:72px"></textarea>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="tmf">
@@ -2856,31 +2883,23 @@ input:focus, textarea:focus, select:focus {
       </div>
       <div class="tmf">
         <label>Status</label>
-        <select id="td-status">
+        <select id="td-status" onchange="updateProgressFromStatus()">
           <option value="pending">Backlog</option>
           <option value="in_progress">In Progress</option>
           <option value="completed">Completed</option>
         </select>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="tmf">
-        <label>Assignee</label>
-        <input id="td-assignee" placeholder="Agent name">
-      </div>
-      <div class="tmf">
-        <label>ETA</label>
-        <input id="td-eta" type="datetime-local">
-      </div>
+    <div class="tmf">
+      <label>Assignee</label>
+      <div class="assignee-chips" id="td-assignee-chips"></div>
+      <input type="hidden" id="td-assignee" value="FORGE">
     </div>
     <div class="tmf">
-      <label>Progress</label>
-      <div class="slider-row">
-        <input type="range" id="td-progress" min="0" max="100" value="0" oninput="document.getElementById('td-progress-val').textContent=this.value+'%'">
-        <span class="slider-val" id="td-progress-val">0%</span>
-      </div>
+      <label>ETA</label>
+      <input id="td-eta" type="datetime-local">
     </div>
-    <div class="modal-actions" style="justify-content:space-between">
+    <div class="modal-actions" style="justify-content:space-between;margin-top:20px">
       <button class="btn btn-ghost" style="color:var(--red)" onclick="deleteTaskDetail()">Delete</button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost" onclick="closeOverlay('task-detail-modal')">Cancel</button>
@@ -3053,6 +3072,17 @@ async function loadStatus() {
     curModel    = d.primary_model || curModel;
     renderModelCards(d.provider, d.primary_model);
   }
+  // Update usage bar
+  const uModel = document.getElementById('usage-model');
+  const uProv  = document.getElementById('usage-provider');
+  const uMem   = document.getElementById('usage-memories');
+  const uAg    = document.getElementById('usage-agents');
+  const uTasks = document.getElementById('usage-tasks');
+  if (uModel) uModel.textContent = d.primary_model || '—';
+  if (uProv)  uProv.textContent  = d.provider || '—';
+  if (uMem)   uMem.textContent   = d.memories || 0;
+  if (uAg)    uAg.textContent    = d.agents || 1;
+  if (uTasks) uTasks.textContent = d.tasks || 0;
 
   // Update agent name everywhere dynamically
   const agentName = d.name || 'FORGE';
@@ -3637,14 +3667,18 @@ function renderKanbanBoard(data) {
       const priClass = pri.startsWith('P1') ? 'pb-p1' : pri.startsWith('P2') ? 'pb-p2' : pri.startsWith('P4') ? 'pb-p4' : 'pb-p3';
       const eta = t.eta ? fmtEta(t.eta) : null;
       const prog = t.progress || 0;
+      const autoPct = col.key === 'completed' ? 100 : col.key === 'in_progress' ? (prog || 50) : (prog || 0);
+      const fillClass = autoPct >= 100 ? 'pct-100' : autoPct === 0 ? 'pct-0' : '';
       return `<div class="task-card${ageWarn?' age-warn':''}" onclick="openTaskDetail(${t.id})">
-        <div class="task-title">${xss(t.title||'Untitled')}</div>
-        <div class="task-meta">
-          <span class="priority-badge ${priClass}">${pri}</span>
-          ${t.assignee ? `<span class="task-assignee">${xss(t.assignee)}</span>` : ''}
-          ${eta ? `<span class="task-eta">· ${eta}</span>` : ''}
+        <div class="task-card-body">
+          <div class="task-title" style="font-size:12px;font-weight:600;line-height:1.4;margin-bottom:6px">${xss(t.title||'Untitled')}</div>
+          <div class="task-meta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span class="priority-badge ${priClass}">${pri}</span>
+            ${t.assignee ? `<span class="task-assignee">${xss(t.assignee)}</span>` : ''}
+            ${eta ? `<span class="task-eta">· ${eta}</span>` : ''}
+          </div>
         </div>
-        ${prog > 0 ? `<div class="task-progress-wrap"><div class="task-progress-bar"><div class="task-progress-fill" style="width:${prog}%"></div></div></div>` : ''}
+        <div class="task-progress-wrap"><div class="task-progress-bar"><div class="task-progress-fill ${fillClass}" style="width:${autoPct}%"></div></div></div>
       </div>`;
     });
     const addBtn = col.key === 'backlog'
@@ -3689,11 +3723,65 @@ function openTaskDetail(taskId) {
   document.getElementById('td-assignee').value    = task.assignee || 'FORGE';
   document.getElementById('td-eta').value         = task.eta ? task.eta.slice(0,16) : '';
   document.getElementById('td-status').value      = task.status || 'pending';
-  const prog = task.progress || 0;
-  document.getElementById('td-progress').value    = prog;
-  document.getElementById('td-progress-val').textContent = prog + '%';
   document.getElementById('td-created').textContent = task.created ? new Date(task.created).toLocaleString() : '—';
+  // Status badge
+  const badge = document.getElementById('td-status-badge');
+  if (badge) {
+    const s = task.status || 'pending';
+    const colors = { pending:'var(--tx4)', in_progress:'var(--amber)', completed:'var(--green)' };
+    const labels = { pending:'Backlog', in_progress:'In Progress', completed:'Completed' };
+    badge.style.color = colors[s] || 'var(--tx4)';
+    badge.textContent = labels[s] || s;
+  }
+  // Build assignee chips
+  buildAssigneeChips(task.assignee || 'FORGE');
   openOverlay('task-detail-modal');
+}
+
+function buildAssigneeChips(selected) {
+  const container = document.getElementById('td-assignee-chips');
+  if (!container) return;
+  const ownerName = document.getElementById('cfg-owner')?.value || 'Owner';
+  const agentName = document.getElementById('sidebar-agent-name')?.textContent || 'FORGE';
+  // Base options: owner + main agent + any spawned agents
+  const baseAssignees = [
+    { id: ownerName.toUpperCase(), label: ownerName, color: '#6366f1' },
+    { id: agentName, label: agentName, color: '#10b981' },
+  ];
+  // Add spawned agents from mcTasks agents
+  const seenAgents = new Set(baseAssignees.map(a => a.id));
+  mcTasks.forEach(t => {
+    const ag = (t.assignee || '').toUpperCase();
+    if (ag && !seenAgents.has(ag)) {
+      seenAgents.add(ag);
+      baseAssignees.push({ id: ag, label: ag, color: '#8b5cf6' });
+    }
+  });
+  container.innerHTML = baseAssignees.map(a => {
+    const sel = (selected || '').toUpperCase() === a.id.toUpperCase() ? ' selected' : '';
+    return `<div class="assignee-chip${sel}" onclick="selectAssigneeChip(this,'${a.id}')">
+      <div class="assignee-chip-avatar" style="background:${a.color}">${a.label.charAt(0).toUpperCase()}</div>
+      ${a.label}
+    </div>`;
+  }).join('');
+}
+
+function selectAssigneeChip(el, id) {
+  document.querySelectorAll('.assignee-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('td-assignee').value = id;
+}
+
+function updateProgressFromStatus() {
+  // Progress is auto-derived from status — no manual slider
+  const status = document.getElementById('td-status')?.value;
+  const badge = document.getElementById('td-status-badge');
+  if (badge) {
+    const colors = { pending:'var(--tx4)', in_progress:'var(--amber)', completed:'var(--green)' };
+    const labels = { pending:'Backlog', in_progress:'In Progress', completed:'Completed' };
+    badge.style.color = colors[status] || 'var(--tx4)';
+    badge.textContent = labels[status] || status;
+  }
 }
 
 async function saveTaskDetail() {
@@ -3706,7 +3794,7 @@ async function saveTaskDetail() {
     assignee:    document.getElementById('td-assignee').value.trim(),
     eta:         document.getElementById('td-eta').value || null,
     status:      document.getElementById('td-status').value,
-    progress:    parseInt(document.getElementById('td-progress').value) || 0,
+    progress:    document.getElementById('td-status').value === 'completed' ? 100 : document.getElementById('td-status').value === 'in_progress' ? (mcCurrentTask.progress || 50) : 0,
   });
   closeOverlay('task-detail-modal');
   loadMissionControl();
