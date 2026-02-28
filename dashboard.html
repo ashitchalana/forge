@@ -2139,8 +2139,8 @@ input:focus, textarea:focus, select:focus {
       <button class="agent-item active" id="ag-FORGE" onclick="selectAgent('FORGE', this)">
         <div class="agent-marker" style="background:var(--green);box-shadow:0 0 5px var(--green)"></div>
         <div style="flex:1;min-width:0">
-          <div class="agent-name">FORGE</div>
-          <div class="agent-role">Master · active</div>
+          <div class="agent-name" id="sidebar-agent-name">FORGE</div>
+          <div class="agent-role" id="sidebar-agent-role">Master · active</div>
           <div class="agent-load" id="forge-load-bar"><div class="agent-load-fill" style="width:0%;background:var(--green)"></div></div>
         </div>
       </button>
@@ -2177,7 +2177,7 @@ input:focus, textarea:focus, select:focus {
     <div class="view" id="view-chat">
       <div class="view-head">
         <div>
-          <div class="view-title" id="chat-agent-name">CORTEX</div>
+          <div class="view-title" id="chat-agent-name">FORGE</div>
           <div class="view-sub" id="chat-agent-sub">Autonomous Execution Engine · active</div>
         </div>
         <select class="model-selector" id="model-select" onchange="curModel=this.value">
@@ -3069,9 +3069,19 @@ async function loadStatus() {
   document.getElementById('cfg-owner').value         = d.owner || '';
   document.getElementById('cfg-primary-model').value = d.primary_model || '';
 
-  // Channel status
-  const tg = d.channels?.telegram?.enabled;
-  const dc = d.channels?.discord?.enabled;
+  // Update agent name everywhere dynamically
+  const agentName = d.name || 'FORGE';
+  const providerLabel = d.provider ? `${d.provider} · ${d.primary_model || ''}` : 'active';
+  const sidebarName = document.getElementById('sidebar-agent-name');
+  const sidebarRole = document.getElementById('sidebar-agent-role');
+  const chatName    = document.getElementById('chat-agent-name');
+  if (sidebarName) sidebarName.textContent = agentName;
+  if (sidebarRole) sidebarRole.textContent = `Master · ${d.provider || 'active'}`;
+  if (chatName && chatName.dataset.locked !== 'true') chatName.textContent = agentName;
+
+  // Channel status — check both enabled flag AND that token is actually set
+  const tg = d.channels?.telegram?.enabled && d.channels?.telegram?.bot_token;
+  const dc = d.channels?.discord?.enabled  && d.channels?.discord?.bot_token;
   const tgEl = document.getElementById('tg-status');
   const dcEl = document.getElementById('dc-status');
   if (tgEl) {
@@ -3101,6 +3111,13 @@ function populateModels() {
     { v:'claude-opus-4-6',          l:'Claude Opus 4' },
     { v:'claude-sonnet-4-6',        l:'Claude Sonnet 4' },
     { v:'claude-haiku-4-5-20251001',l:'Claude Haiku 4' },
+    { v:'gpt-4.5',                  l:'GPT-4.5' },
+    { v:'gpt-4.5-mini',             l:'GPT-4.5 Mini' },
+    { v:'gpt-4.5-codex',            l:'GPT-4.5 Codex' },
+    { v:'gpt-5.1',                  l:'GPT-5.1' },
+    { v:'gpt-5.1-codex',            l:'GPT-5.1 Codex' },
+    { v:'gpt-5.2',                  l:'GPT-5.2' },
+    { v:'gpt-5.2-codex',            l:'GPT-5.2 Codex' },
     { v:'gpt-4o',                   l:'GPT-4o' },
     { v:'o1',                       l:'OpenAI o1' },
     { v:'gemini-1.5-pro',           l:'Gemini 1.5 Pro' },
@@ -3143,7 +3160,7 @@ function selectAgent(name, btn) {
   if (el) el.classList.add('active');
 
   const a = agents.find(x=>x.name===name) || {role:'Master',model:'active'};
-  document.getElementById('chat-agent-name').textContent = name === 'FORGE' ? 'CORTEX' : name;
+  document.getElementById('chat-agent-name').textContent = name;
   document.getElementById('chat-agent-sub').textContent  = name === 'FORGE' ? 'Autonomous Execution Engine · active' : `${a.role||''} · ${a.model||''}`;
 
   switchView('chat');
@@ -3545,7 +3562,7 @@ function renderMcAgentGrid() {
       if (marker) { marker.style.background = col; marker.style.boxShadow = `0 0 5px ${col}`; }
     }
   });
-  const allAgents = [{ name:'FORGE', role:'Master', model:'claude-sonnet-4-6' }, ...agents];
+  const allAgents = [{ name: document.getElementById('sidebar-agent-name')?.textContent || 'FORGE', role:'Master', model: curModel || 'claude-sonnet-4-6' }, ...agents];
   grid.innerHTML = allAgents.map((a, i) => {
     const count = taskCounts[a.name] || 0;
     const status = count === 0 ? 'idle' : count <= 2 ? 'working' : 'busy';
