@@ -1940,6 +1940,74 @@ def _nightly_loop():
             except Exception as e: log.error(f"Nightly: {e}")
 
 
+# ── TELEGRAM POLLING LOOP ─────────────────────────────────
+def _telegram_poll_loop():
+    """Long-poll Telegram getUpdates and route messages through process_chat."""
+    import urllib.request, urllib.error
+    offset = 0
+    log.info("Telegram polling loop started")
+    while True:
+        try:
+            cfg   = load_cfg()
+            tg    = cfg.get("channels", {}).get("telegram", {})
+            token = tg.get("bot_token", "")
+            uid   = str(tg.get("user_id", ""))
+            if not token:
+                time.sleep(30)
+                continue
+
+            url  = f"https://api.telegram.org/bot{token}/getUpdates?timeout=30&offset={offset}"
+            req  = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=35) as r:
+                data = json.loads(r.read())
+
+            if not data.get("ok"):
+                time.sleep(5)
+                continue
+
+            for update in data.get("result", []):
+                offset = update["update_id"] + 1
+                msg    = update.get("message", {})
+                text   = (msg.get("text") or "").strip()
+                from_id = str(msg.get("from", {}).get("id", ""))
+                if not text:
+                    continue
+                # Only respond to authorised user (if configured)
+                if uid and from_id != uid:
+                    log.warning(f"Telegram: ignored message from unknown user {from_id}")
+                    continue
+
+                log.info(f"Telegram ← {text[:80]}")
+                try:
+                    reply = process_chat(text, "FORGE")
+                except Exception as e:
+                    reply = f"Error processing message: {e}"
+
+                # Send reply
+                try:
+                    payload = json.dumps({
+                        "chat_id": from_id,
+                        "text":    reply[:4000],
+                        "parse_mode": "Markdown"
+                    }).encode()
+                    resp_req = urllib.request.Request(
+                        f"https://api.telegram.org/bot{token}/sendMessage",
+                        data=payload,
+                        headers={"Content-Type": "application/json"}
+                    )
+                    urllib.request.urlopen(resp_req, timeout=10)
+                    log.info(f"Telegram → replied ({len(reply)} chars)")
+                except Exception as e:
+                    log.error(f"Telegram send: {e}")
+
+        except urllib.error.URLError as e:
+            log.warning(f"Telegram poll network error: {e} — retrying in 10s")
+            time.sleep(10)
+        except Exception as e:
+            log.error(f"Telegram poll error: {e}")
+            time.sleep(5)
+
+
 # ── SCHEDULED JOBS ────────────────────────────────────────
 
 # ── MAIN ──────────────────────────────────────────────────
@@ -1957,6 +2025,9 @@ if __name__ == "__main__":
 
     # Resume any interrupted tasks from last session
     threading.Thread(target=task_resume_pending, daemon=True).start()
+
+    # Telegram long-poll loop
+    threading.Thread(target=_telegram_poll_loop, daemon=True).start()
 
     # ── Scheduler ─────────────────────────────────────────────
     if HAS_APSCHEDULER:
