@@ -24,7 +24,7 @@ FORGE_WS="$HOME_DIR/Forge"
 CORE_DIR="$FORGE_WS/.cortex_brain/core"
 LOG_DIR="$FORGE_CFG/logs"
 CFG_FILE="$FORGE_CFG/forge.json"
-DAEMON_SRC="https://raw.githubusercontent.com/YOUR/forge/main/daemon.py"
+DAEMON_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/daemon.py"
 
 # ── Banner ────────────────────────────────────────────────────
 clear
