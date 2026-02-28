@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
 #  FORGE INSTALLER — One-command setup for any fresh Mac
-#  Usage: curl -fsSL https://raw.githubusercontent.com/ashitchalana/forge/main/install.sh | bash
+#  Usage: bash <(curl -fsSL https://raw.githubusercontent.com/ashitchalana/forge/main/install.sh)
 # ═══════════════════════════════════════════════════════════════
 
 set -euo pipefail
@@ -26,16 +26,24 @@ LOG_DIR="$FORGE_CFG/logs"
 CFG_FILE="$FORGE_CFG/forge.json"
 DAEMON_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/daemon.py"
 
-# ── Fix: ensure interactive prompts work even when piped via curl | bash ──
-# Redirect stdin from /dev/tty so read commands work correctly
-exec </dev/tty
+# ── TTY guard: ensure interactive prompts always work ─────────
+# bash <(curl ...) keeps stdin as TTY natively.
+# curl | bash pipes stdin — try to recover it from /dev/tty.
+if ! [ -t 0 ]; then
+  if [ -e /dev/tty ]; then
+    exec </dev/tty
+  else
+    err "No TTY available. Run with: bash <(curl -fsSL https://raw.githubusercontent.com/ashitchalana/forge/main/install.sh)"
+    exit 1
+  fi
+fi
 
 # ── Banner ────────────────────────────────────────────────────
 clear
 echo ""
 echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════╗${RESET}"
 echo -e "${BOLD}${CYAN}║           FORGE — Personal AGI            ║${RESET}"
-echo -e "${BOLD}${CYAN}║          Installer v1.1 for macOS         ║${RESET}"
+echo -e "${BOLD}${CYAN}║          Installer v1.3 for macOS         ║${RESET}"
 echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════╝${RESET}"
 echo ""
 echo -e "  Sets up your personal AI brain on this Mac."
