@@ -714,8 +714,12 @@ class ForgeAI:
                     except Exception:
                         continue
                     ev_type = ev.get("type", "")
+                    log.info(f"ChatGPT SSE event: {ev_type}")
                     if ev_type == "response.output_text.delta":
                         collected_text.append(ev.get("delta", ""))
+                    elif "delta" in ev and isinstance(ev.get("delta"), str):
+                        # Catch any delta variant
+                        collected_text.append(ev["delta"])
                     elif ev_type in ("response.done", "response.completed"):
                         resp = ev.get("response", {})
                         for item in resp.get("output", []):
@@ -726,7 +730,9 @@ class ForgeAI:
                         if collected_text:
                             return "".join(collected_text)
 
-            return "".join(collected_text) if collected_text else "No response received"
+            result = "".join(collected_text)
+            log.info(f"ChatGPT SSE done — collected {len(result)} chars")
+            return result if result else "No response received"
 
         except urllib.error.HTTPError as e:
             body = e.read().decode()
