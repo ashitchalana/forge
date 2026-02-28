@@ -3240,23 +3240,15 @@ async function loadStatus() {
   const emptyTitle = document.getElementById('empty-agent-title');
   if (emptyTitle) emptyTitle.textContent = agentName;
 
-  // Channel status — check both enabled flag AND that token is actually set
-  const tg = d.channels?.telegram?.enabled && d.channels?.telegram?.bot_token;
-  const dc = d.channels?.discord?.enabled  && d.channels?.discord?.bot_token;
-  const tgEl = document.getElementById('tg-status');
-  const dcEl = document.getElementById('dc-status');
-  if (tgEl) {
-    tgEl.className = 'badge ' + (tg ? 'badge-ok' : 'badge-pending');
-    tgEl.textContent = tg ? 'active' : 'not set';
-  }
-  if (dcEl) {
-    dcEl.className = 'badge ' + (dc ? 'badge-ok' : 'badge-pending');
-    dcEl.textContent = dc ? 'active' : 'not set';
-  }
-
-  // Heartbeat toggles
+  // Heartbeat toggles + channel badges — use /config (not /status which lacks channels)
   const cfg = await api('/config').catch(()=>({}));
   const hb  = cfg.heartbeat || {};
+  const tg = !!(cfg.channels?.telegram?.bot_token && cfg.channels?.telegram?.user_id);
+  const dc = !!(cfg.channels?.discord?.webhook_url || cfg.channels?.discord?.bot_token);
+  const tgEl = document.getElementById('tg-status');
+  const dcEl = document.getElementById('dc-status');
+  if (tgEl) { tgEl.className = 'badge ' + (tg ? 'badge-ok' : 'badge-pending'); tgEl.textContent = tg ? 'active' : 'not set'; }
+  if (dcEl) { dcEl.className = 'badge ' + (dc ? 'badge-ok' : 'badge-pending'); dcEl.textContent = dc ? 'active' : 'not set'; }
   const hbEl = document.getElementById('hb-toggle');
   const hbNEl = document.getElementById('hb-notify-toggle');
   if (hbEl)  hbEl.className  = 'toggle' + (hb.enabled !== false ? ' on' : '');
@@ -4297,25 +4289,14 @@ function setAccent(name, el) {
 }
 
 function updateSettingsStatusBadges() {
-  // called when settings opens — status already loaded via loadStatus
-  api('/status').then(d => {
-    const tg = d.channels?.telegram?.enabled && d.channels?.telegram?.bot_token;
-    const dc = d.channels?.discord?.enabled  && d.channels?.discord?.bot_token;
+  // Use /config — actual channel data lives there, not in /status
+  api('/config').then(cfg => {
+    const tg = !!(cfg.channels?.telegram?.bot_token && cfg.channels?.telegram?.user_id);
+    const dc = !!(cfg.channels?.discord?.webhook_url || cfg.channels?.discord?.bot_token);
     const tgBadge = document.getElementById('stab-tg-badge');
     const dcBadge = document.getElementById('stab-dc-badge');
     if (tgBadge) { tgBadge.className = 'badge ' + (tg ? 'badge-ok' : 'badge-error'); tgBadge.textContent = tg ? 'active' : 'not set'; }
     if (dcBadge) { dcBadge.className = 'badge ' + (dc ? 'badge-ok' : 'badge-error'); dcBadge.textContent = dc ? 'active' : 'not set'; }
-    // Update usage stats
-    const mem = d.memories || 0;
-    const memBar = document.getElementById('usage-mem-bar');
-    const memVal = document.getElementById('usage-mem-val');
-    if (memBar) memBar.style.width = Math.min((mem/500)*100, 100) + '%';
-    if (memVal) memVal.textContent = mem + ' / 500';
-    const tasks = d.tasks || 0;
-    const tBar = document.getElementById('usage-tasks-bar');
-    const tVal = document.getElementById('usage-tasks-val');
-    if (tBar) tBar.style.width = Math.min((tasks/50)*100, 100) + '%';
-    if (tVal) tVal.textContent = tasks + ' tasks';
   }).catch(()=>{});
 }
 
@@ -4404,67 +4385,97 @@ function selectChannel(id, btn) {
 }
 
 async function loadChannelStatuses() {
-  const d = await api('/status').catch(()=>({channels:{}}));
-  const tg = d.channels?.telegram?.enabled;
-  const dc = d.channels?.discord?.enabled;
+  // Use /config — only endpoint that actually returns channels data
+  const cfg = await api('/config').catch(()=>({}));
+  const tgCfg = cfg.channels?.telegram || {};
+  const dcCfg = cfg.channels?.discord  || {};
+  const waCfg = cfg.channels?.whatsapp || {};
 
-  // Telegram
-  const tgDot   = document.getElementById('ch-tg-dot');
-  const tgLbl   = document.getElementById('ch-tg-status-label');
-  const tgBadge = document.getElementById('ch-tg-badge');
-  if (tgDot)   { tgDot.className = 'ch-status-dot ' + (tg ? 'ch-dot-active' : 'ch-dot-inactive'); tgDot.style.cssText = `background:${tg?'var(--green)':'var(--red)'};box-shadow:0 0 6px ${tg?'rgba(22,163,74,.5)':'rgba(220,38,38,.3)'};width:8px;height:8px;border-radius:50%;flex-shrink:0`; }
-  if (tgLbl)   { tgLbl.textContent = tg ? 'Connected' : 'Not configured'; tgLbl.style.color = tg ? 'var(--green)' : 'var(--red)'; tgLbl.style.fontWeight = '600'; }
-  if (tgBadge) { tgBadge.className = 'badge ' + (tg ? 'badge-ok' : 'badge-error'); tgBadge.textContent = tg ? 'active' : 'not set'; }
-  // Rail dot
-  const tgRailDot = document.getElementById('rail-dot-telegram');
-  if (tgRailDot) { tgRailDot.className = 'ch-rail-dot' + (tg ? ' active' : ''); }
+  // Telegram is configured if bot_token + user_id are present
+  const tg = !!(tgCfg.bot_token && tgCfg.user_id);
+  const dc = !!(dcCfg.webhook_url || dcCfg.bot_token);
+  const wa = !!(waCfg.sid && waCfg.token);
 
-  // Discord
-  const dcDot   = document.getElementById('ch-dc-dot');
-  const dcLbl   = document.getElementById('ch-dc-status-label');
-  const dcBadge = document.getElementById('ch-dc-badge');
-  if (dcDot)   { dcDot.className = 'ch-status-dot ' + (dc ? 'ch-dot-active' : 'ch-dot-inactive'); dcDot.style.cssText = `background:${dc?'var(--green)':'var(--red)'};box-shadow:0 0 6px ${dc?'rgba(22,163,74,.5)':'rgba(220,38,38,.3)'};width:8px;height:8px;border-radius:50%;flex-shrink:0`; }
-  if (dcLbl)   { dcLbl.textContent = dc ? 'Connected' : 'Not configured'; dcLbl.style.color = dc ? 'var(--green)' : 'var(--red)'; dcLbl.style.fontWeight = '600'; }
-  if (dcBadge) { dcBadge.className = 'badge ' + (dc ? 'badge-ok' : 'badge-error'); dcBadge.textContent = dc ? 'active' : 'not set'; }
-  // Rail dot
-  const dcRailDot = document.getElementById('rail-dot-discord');
-  if (dcRailDot) { dcRailDot.className = 'ch-rail-dot' + (dc ? ' active' : ''); }
+  function applyChannelStatus(dotId, lblId, badgeId, railId, active) {
+    const dot   = document.getElementById(dotId);
+    const lbl   = document.getElementById(lblId);
+    const badge = document.getElementById(badgeId);
+    const rail  = document.getElementById(railId);
+    if (dot)   { dot.style.cssText = `background:${active?'var(--green)':'var(--red)'};box-shadow:0 0 6px ${active?'rgba(22,163,74,.5)':'rgba(220,38,38,.3)'};width:8px;height:8px;border-radius:50%;flex-shrink:0`; }
+    if (lbl)   { lbl.textContent = active ? 'Connected' : 'Not configured'; lbl.style.color = active ? 'var(--green)' : 'var(--red)'; lbl.style.fontWeight = '600'; }
+    if (badge) { badge.className = 'badge ' + (active ? 'badge-ok' : 'badge-error'); badge.textContent = active ? 'active' : 'not set'; }
+    if (rail)  { rail.className = 'ch-rail-dot' + (active ? ' active' : ''); }
+  }
 
-  const wa = d.channels?.whatsapp?.enabled;
-  const waDot = document.getElementById('rail-dot-whatsapp');
-  if (waDot) waDot.style.background = wa ? 'var(--green)' : 'var(--tx4)';
+  applyChannelStatus('ch-tg-dot','ch-tg-status-label','ch-tg-badge','rail-dot-telegram', tg);
+  applyChannelStatus('ch-dc-dot','ch-dc-status-label','ch-dc-badge','rail-dot-discord',  dc);
+  applyChannelStatus('ch-wa-dot','ch-wa-status-label','ch-wa-badge','rail-dot-whatsapp', wa);
+
+  // Pre-fill inputs with saved values (masked token shows as placeholder)
+  const tgTokenEl = document.getElementById('ch-tg-token');
+  const tgChatEl  = document.getElementById('ch-tg-chat');
+  if (tgTokenEl && tgCfg.bot_token) tgTokenEl.placeholder = tgCfg.bot_token; // masked ••••••
+  if (tgChatEl  && tgCfg.user_id)   tgChatEl.value  = tgCfg.user_id;
+  const dcWebhookEl = document.getElementById('ch-dc-webhook');
+  if (dcWebhookEl && dcCfg.webhook_url) dcWebhookEl.placeholder = dcCfg.webhook_url;
 }
 
 async function testChannel(type) {
   const btn = event.target;
   btn.textContent = 'Testing…';
   btn.disabled = true;
-  const result = await api('/channels/test', { type }).catch(()=>({ok:false,error:'No response'}));
+  try {
+    if (type === 'telegram') {
+      const token = document.getElementById('ch-tg-token')?.value?.trim();
+      if (!token) throw new Error('Enter bot token first');
+      const r = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+      const j = await r.json();
+      btn.textContent = j.ok ? `✓ @${j.result.username}` : 'Invalid token';
+    } else if (type === 'discord') {
+      const webhook = document.getElementById('ch-dc-webhook')?.value?.trim();
+      if (!webhook) throw new Error('Enter webhook URL first');
+      const r = await fetch(webhook);
+      btn.textContent = r.ok ? '✓ Webhook valid' : 'Invalid webhook';
+    } else {
+      btn.textContent = 'Test via terminal';
+    }
+  } catch(e) {
+    btn.textContent = e.message || 'Failed';
+  }
   btn.disabled = false;
-  btn.textContent = result.ok ? 'Success!' : 'Failed';
-  setTimeout(() => btn.textContent = 'Test connection', 2500);
+  setTimeout(() => btn.textContent = 'Test connection', 3000);
 }
 
 async function saveChannel(type) {
-  let payload = { type };
+  let data = { enabled: true };
   if (type === 'telegram') {
-    payload.token   = document.getElementById('ch-tg-token')?.value;
-    payload.chat_id = document.getElementById('ch-tg-chat')?.value;
+    const token   = document.getElementById('ch-tg-token')?.value?.trim();
+    const user_id = document.getElementById('ch-tg-chat')?.value?.trim();
+    if (!token || !user_id) { alert('Bot token and Chat ID are both required.'); return; }
+    data.bot_token = token;
+    data.user_id   = user_id;
   } else if (type === 'discord') {
-    payload.webhook_url = document.getElementById('ch-dc-webhook')?.value;
+    const webhook = document.getElementById('ch-dc-webhook')?.value?.trim();
+    if (!webhook) { alert('Webhook URL is required.'); return; }
+    data.webhook_url = webhook;
   } else if (type === 'whatsapp') {
-    payload.sid   = document.getElementById('ch-wa-sid')?.value;
-    payload.token = document.getElementById('ch-wa-token')?.value;
-    payload.from  = document.getElementById('ch-wa-from')?.value;
-    payload.to    = document.getElementById('ch-wa-to')?.value;
+    data.sid   = document.getElementById('ch-wa-sid')?.value?.trim();
+    data.token = document.getElementById('ch-wa-token')?.value?.trim();
+    data.from  = document.getElementById('ch-wa-from')?.value?.trim();
+    data.to    = document.getElementById('ch-wa-to')?.value?.trim();
   }
   const btn = event.target;
   btn.textContent = 'Saving…';
   btn.disabled = true;
-  await api('/channels/save', payload).catch(()=>{});
+  const result = await api('/channel/update', { channel: type, data }).catch(()=>null);
   btn.disabled = false;
-  btn.textContent = 'Saved';
-  setTimeout(() => { btn.textContent = 'Save'; loadChannelStatuses(); }, 1800);
+  if (result?.success) {
+    btn.textContent = 'Saved ✓';
+    setTimeout(() => { btn.textContent = 'Save'; loadChannelStatuses(); }, 1800);
+  } else {
+    btn.textContent = 'Failed — daemon offline?';
+    setTimeout(() => { btn.textContent = 'Save'; }, 2500);
+  }
 }
 
 // ══════════════════════════════════════════
