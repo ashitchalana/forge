@@ -858,6 +858,17 @@ body::before {
   gap: 10px;
   padding: 16px 18px;
 }
+.agent-detail-card { background:var(--sur); border:1px solid var(--bd); border-radius:12px; padding:18px; transition:all .2s; }
+.agent-detail-card:hover { border-color:var(--bd2); box-shadow:var(--sh2); }
+.agent-detail-header { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.agent-detail-avatar { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; color:#fff; flex-shrink:0; }
+.agent-detail-name { font-size:14px; font-weight:700; color:var(--tx); font-family:var(--font-d); }
+.agent-detail-role { font-size:11px; color:var(--tx4); margin-top:2px; }
+.agent-model-row { display:flex; align-items:center; gap:8px; margin-top:12px; }
+.agent-model-select { flex:1; font-size:11px; padding:6px 10px; border-radius:7px; border:1px solid var(--bd); background:var(--bg2); color:var(--tx); font-family:var(--font-m); cursor:pointer; }
+.agent-model-save { font-size:10px; padding:6px 12px; border-radius:7px; border:none; background:var(--acc); color:#fff; font-weight:700; cursor:pointer; font-family:var(--font-m); }
+.agent-model-save:hover { opacity:.85; }
+
 .model-card {
   border: 1.5px solid var(--bd);
   border-radius: 12px;
@@ -1304,6 +1315,10 @@ body::before {
 }
 .overlay.open { opacity: 1; pointer-events: all; }
 
+.modal { transform-origin: center bottom; }
+.overlay .modal { transform: scale(0.92) translateY(24px); opacity:0; transition: transform .28s cubic-bezier(.34,1.56,.64,1), opacity .2s ease; }
+.overlay.open .modal { transform: scale(1) translateY(0); opacity:1; }
+
 .modal {
   background: var(--sur);
   border: 1px solid var(--bd2);
@@ -1312,10 +1327,7 @@ body::before {
   width: 400px;
   max-width: 94vw;
   box-shadow: 0 20px 60px rgba(0,0,0,.3);
-  transform: translateY(12px);
-  transition: transform .25s cubic-bezier(.22,.68,0,1.2);
 }
-.overlay.open .modal { transform: none; }
 .modal-title {
   font-family: var(--font-d);
   font-size: 18px;
@@ -2107,7 +2119,7 @@ input:focus, textarea:focus, select:focus {
       </button>
       <button class="top-btn" onclick="switchView('channels')">Channels</button>
       <button class="top-btn" onclick="openOverlay('spawn-modal')">New Agent</button>
-      <button class="top-btn-p top-btn" onclick="switchView('parallel')">Parallel</button>
+      <button class="top-btn-p top-btn" onclick="switchView('agents')">Agents</button>
     </div>
   </header>
 
@@ -2124,9 +2136,9 @@ input:focus, textarea:focus, select:focus {
         <svg class="sidebar-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5l-3 3V3a1 1 0 0 1 1-1z"/></svg>
         Chat
       </button>
-      <button class="sidebar-item" id="nav-parallel" onclick="switchView('parallel', this)">
+      <button class="sidebar-item" id="nav-agents" onclick="switchView('agents', this)">
         <svg class="sidebar-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M1 4h14M1 8h14M1 12h14" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-        Parallel
+        Agents
       </button>
       <button class="sidebar-item" id="nav-memory" onclick="switchView('memory', this)">
         <svg class="sidebar-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.22 3.22l1.42 1.42M11.36 11.36l1.42 1.42M3.22 12.78l1.42-1.42M11.36 4.64l1.42-1.42" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
@@ -2236,26 +2248,16 @@ input:focus, textarea:focus, select:focus {
       </div>
     </div>
 
-    <!-- PARALLEL VIEW — MISSION TERMINAL -->
-    <div class="view" id="view-parallel">
+    <!-- AGENTS VIEW -->
+    <div class="view" id="view-agents">
       <div class="view-head">
         <div>
-          <div class="view-title">Parallel Dispatch</div>
-          <div class="view-sub" id="parallel-sub">Assign tasks to multiple agents simultaneously</div>
+          <div class="view-title">Agents</div>
+          <div class="view-sub" id="agents-sub">Spawned agents and their active models</div>
         </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" onclick="clearParallel()">Clear all</button>
-          <button class="btn btn-primary" id="dispatch-btn" onclick="runParallel()">
-            <svg width="11" height="11" viewBox="0 0 16 16" fill="white" style="margin-right:5px"><polygon points="3,2 13,8 3,14"/></svg>
-            Dispatch
-          </button>
-        </div>
+        <button class="btn btn-primary" onclick="openOverlay('spawn-modal')">+ Spawn Agent</button>
       </div>
-      <div class="parallel-progress" id="parallel-progress">
-        <div class="parallel-prog-bar"><div class="parallel-prog-fill" id="parallel-prog-fill" style="width:0%"></div></div>
-        <div class="parallel-prog-label" id="parallel-prog-label">0 / 0 agents complete</div>
-      </div>
-      <div class="parallel-grid" id="parallel-grid"></div>
+      <div id="agents-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;padding:20px"></div>
     </div>
 
     <!-- CHANNELS VIEW — PREMIUM COMMAND CENTER -->
@@ -3297,7 +3299,7 @@ function switchView(name, btn) {
     vw.classList.add('visible');
   }
 
-  ['mission','chat','parallel','memory','heartbeat','channels','settings'].forEach(n => {
+  ['mission','chat','agents','memory','heartbeat','channels','settings'].forEach(n => {
     const nb = document.getElementById('nav-' + n);
     if (nb) nb.classList.remove('active');
   });
@@ -3309,6 +3311,7 @@ function switchView(name, btn) {
   if (name === 'settings')  { loadStatus(); updateSettingsStatusBadges(); }
   if (name === 'mission')   loadMissionControl();
   if (name === 'channels')  loadChannelStatuses();
+  if (name === 'agents')    loadAgentsView();
 }
 
 // ══════════════════════════════════════════
@@ -3571,6 +3574,100 @@ function toggleTheme() {
   theme = theme === 'light' ? 'dark' : 'light';
   document.body.setAttribute('data-theme', theme);
   localStorage.setItem('forge-theme', theme);
+}
+
+// ══════════════════════════════════════════
+//  AGENTS VIEW
+// ══════════════════════════════════════════
+async function loadAgentsView() {
+  const grid = document.getElementById('agents-grid');
+  if (!grid) return;
+  const agents = await api('/agents').catch(()=>[]);
+  const status = await api('/status').catch(()=>({}));
+  const ownerName = status.owner || 'Owner';
+  const mainName  = status.name  || 'FORGE';
+  const mainModel = status.primary_model || 'claude-sonnet-4-6';
+  const mainProv  = status.provider || 'anthropic';
+
+  const allModels = [
+    { v:'claude-haiku-4-5-20251001', l:'Claude Haiku 4' },
+    { v:'claude-sonnet-4-6',         l:'Claude Sonnet 4' },
+    { v:'claude-opus-4-6',           l:'Claude Opus 4' },
+    { v:'gpt-4.5',                   l:'GPT-4.5' },
+    { v:'gpt-5.1-codex',             l:'GPT-5.1 Codex' },
+    { v:'gpt-5.2',                   l:'GPT-5.2' },
+    { v:'gpt-5.2-codex',             l:'GPT-5.2 Codex' },
+    { v:'gpt-4o',                    l:'GPT-4o' },
+    { v:'gemini-2.5-pro',            l:'Gemini 2.5 Pro' },
+    { v:'gemini-2.0-flash',          l:'Gemini 2.0 Flash' },
+    { v:'gemini-1.5-pro',            l:'Gemini 1.5 Pro' },
+  ];
+
+  const modelOptions = (current) => allModels.map(m =>
+    `<option value="${m.v}" ${m.v === current ? 'selected' : ''}>${m.l}</option>`
+  ).join('');
+
+  const avatarColors = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+
+  // Main agent card
+  const mainCard = `<div class="agent-detail-card">
+    <div class="agent-detail-header">
+      <div class="agent-detail-avatar" style="background:${avatarColors[0]}">${mainName.charAt(0)}</div>
+      <div>
+        <div class="agent-detail-name">${mainName}</div>
+        <div class="agent-detail-role">Master Agent · Primary</div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--tx4);margin-bottom:4px">Active model</div>
+    <div class="agent-model-row">
+      <select class="agent-model-select" id="model-select-FORGE">
+        ${modelOptions(mainModel)}
+      </select>
+      <button class="agent-model-save" onclick="saveAgentModel('FORGE', document.getElementById('model-select-FORGE').value, '${mainProv}')">Save</button>
+    </div>
+  </div>`;
+
+  // Spawned agent cards
+  const spawnedCards = (Array.isArray(agents) ? agents : []).map((a, i) => {
+    const col = avatarColors[(i + 1) % avatarColors.length];
+    const id = `model-select-${a.name}`;
+    return `<div class="agent-detail-card">
+      <div class="agent-detail-header">
+        <div class="agent-detail-avatar" style="background:${col}">${a.name.charAt(0)}</div>
+        <div>
+          <div class="agent-detail-name">${a.name}</div>
+          <div class="agent-detail-role">${a.role || 'Agent'}</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--tx4);margin-bottom:4px">Active model</div>
+      <div class="agent-model-row">
+        <select class="agent-model-select" id="${id}">
+          ${modelOptions(a.model || mainModel)}
+        </select>
+        <button class="agent-model-save" onclick="saveAgentModel('${a.name}', document.getElementById('${id}').value, '${a.provider || mainProv}')">Save</button>
+      </div>
+    </div>`;
+  });
+
+  grid.innerHTML = mainCard + spawnedCards.join('');
+  const sub = document.getElementById('agents-sub');
+  if (sub) sub.textContent = `${1 + spawnedCards.length} agent${spawnedCards.length !== 0 ? 's' : ''} · multi-model enabled`;
+}
+
+async function saveAgentModel(agentName, model, provider) {
+  if (agentName === 'FORGE') {
+    await api('/model/change', { provider, model });
+    curModel = model; curProvider = provider;
+    await loadStatus();
+    showSavedToast(`${agentName} → ${model}`);
+  } else {
+    // Update agent record via spawn endpoint or config update
+    await api('/agents/update', { name: agentName, model, provider }).catch(async () => {
+      // Fallback: update via config
+      await api('/config/update', { [`agent_model_${agentName}`]: model });
+    });
+    showSavedToast(`${agentName} → ${model}`);
+  }
 }
 
 // ══════════════════════════════════════════
@@ -3839,7 +3936,7 @@ const CMD_ACTIONS = [
   { icon:'⊕', label:'New Task',         action: openNewTaskModal },
   { icon:'◎', label:'Mission Control',  action: ()=>switchView('mission') },
   { icon:'◎', label:'Chat with CORTEX', action: ()=>switchView('chat') },
-  { icon:'◎', label:'Parallel Dispatch',action: ()=>switchView('parallel') },
+  { icon:'◎', label:'Agents',            action: ()=>switchView('agents') },
   { icon:'◎', label:'Memory',           action: ()=>switchView('memory') },
   { icon:'◎', label:'Heartbeat',        action: ()=>switchView('heartbeat') },
   { icon:'◎', label:'Channels',         action: ()=>switchView('channels') },
@@ -4104,8 +4201,7 @@ async function saveChannel(type) {
     payload.token   = document.getElementById('ch-tg-token')?.value;
     payload.chat_id = document.getElementById('ch-tg-chat')?.value;
   } else if (type === 'discord') {
-    payload.token      = document.getElementById('ch-dc-token')?.value;
-    payload.channel_id = document.getElementById('ch-dc-channel')?.value;
+    payload.webhook_url = document.getElementById('ch-dc-webhook')?.value;
   } else if (type === 'whatsapp') {
     payload.sid   = document.getElementById('ch-wa-sid')?.value;
     payload.token = document.getElementById('ch-wa-token')?.value;
