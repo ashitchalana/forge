@@ -25,6 +25,7 @@ CORE_DIR="$FORGE_WS/.cortex_brain/core"
 LOG_DIR="$FORGE_CFG/logs"
 CFG_FILE="$FORGE_CFG/forge.json"
 DAEMON_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/daemon.py"
+DASHBOARD_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/dashboard.html"
 
 # ── TTY guard: ensure interactive prompts always work ─────────
 # bash <(curl ...) keeps stdin as TTY natively.
@@ -43,7 +44,7 @@ clear
 echo ""
 echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════╗${RESET}"
 echo -e "${BOLD}${CYAN}║           FORGE — Personal AGI            ║${RESET}"
-echo -e "${BOLD}${CYAN}║          Installer v1.4 for macOS         ║${RESET}"
+echo -e "${BOLD}${CYAN}║          Installer v1.6 for macOS         ║${RESET}"
 echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════╝${RESET}"
 echo ""
 echo -e "  Sets up your personal AI brain on this Mac."
@@ -411,21 +412,70 @@ ok "Identity files ready"
 # ════════════════════════════════════════════════════════════════
 hdr "Installing Forge daemon"
 
-# If daemon.py already exists locally (self-install), copy it
+# daemon.py
 if [[ -f "$FORGE_CFG/daemon.py" ]]; then
   ok "daemon.py already present"
 else
-  # Try download
   if curl -fsSL "$DAEMON_SRC" -o "$FORGE_CFG/daemon.py" 2>/dev/null; then
     ok "daemon.py downloaded"
   else
     err "Could not download daemon.py from $DAEMON_SRC"
-    echo ""
     warn "Manual step: Copy daemon.py to ~/.forge/daemon.py"
-    warn "Then run: python3 ~/.forge/daemon.py"
     SKIP_START=true
   fi
 fi
+
+# dashboard.html
+if curl -fsSL "$DASHBOARD_SRC" -o "$FORGE_CFG/dashboard.html" 2>/dev/null; then
+  ok "dashboard.html downloaded"
+else
+  warn "Could not download dashboard.html — run 'forge' after install to retry"
+fi
+
+# setup-wizard.py — interactive reconfiguration tool
+cat > "$FORGE_CFG/setup-wizard.py" <<'SETUPWIZ'
+#!/usr/bin/env python3
+"""forge setup — reconfigure Forge credentials and settings."""
+import json, os, getpass
+from pathlib import Path
+
+CFG = Path.home() / ".forge" / "forge.json"
+cfg = json.loads(CFG.read_text()) if CFG.exists() else {}
+
+print("\n  Forge Setup Wizard\n  " + "─" * 30)
+
+owner = input(f"  Your name [{cfg.get('owner','User')}]: ").strip() or cfg.get('owner','User')
+cfg['owner'] = owner
+
+print("\n  Telegram (press Enter to keep existing)")
+tg = cfg.setdefault('channels', {}).setdefault('telegram', {})
+token = input(f"  Bot token [{tg.get('bot_token','not set')[:8]}...]: ").strip()
+uid   = input(f"  User ID   [{tg.get('user_id','not set')}]: ").strip()
+if token: tg['bot_token'] = token
+if uid:   tg['user_id']   = uid
+
+print("\n  AI Provider")
+print("  1) Claude API key")
+print("  2) OpenAI API key")
+print("  3) Gemini API key")
+choice = input("  Which to update? (1/2/3 or Enter to skip): ").strip()
+prov = cfg.setdefault('providers', {})
+if choice == '1':
+    k = getpass.getpass("  Claude API key: ")
+    if k: prov.setdefault('anthropic', {})['api_key'] = k
+elif choice == '2':
+    k = getpass.getpass("  OpenAI API key: ")
+    if k: prov.setdefault('openai', {})['api_key'] = k
+elif choice == '3':
+    k = getpass.getpass("  Gemini API key: ")
+    if k: prov.setdefault('google', {})['api_key'] = k
+
+CFG.write_text(json.dumps(cfg, indent=2))
+print(f"\n  ✓ Saved to {CFG}")
+print("  Restart Forge: forge-restart\n")
+SETUPWIZ
+chmod +x "$FORGE_CFG/setup-wizard.py"
+ok "Setup wizard created"
 
 # Init database
 if [[ -f "$FORGE_CFG/daemon.py" ]]; then
@@ -491,6 +541,8 @@ add_alias "forge-restart" "bash ~/.forge/forge-start.sh"
 add_alias "forge-logs"    "tail -f ~/.forge/logs/daemon.log"
 add_alias "forge-status"  "curl -s http://localhost:2079/status | python3 -m json.tool"
 add_alias "forge-stop"    "pkill -f 'daemon.py' && echo 'Forge stopped'"
+add_alias "forge-setup"   "python3 ~/.forge/setup-wizard.py"
+add_alias "forge"         "open ~/.forge/dashboard.html"
 
 ok "Aliases added to .zshrc"
 
@@ -703,7 +755,8 @@ SKIP_START="${SKIP_START:-false}"
 
 if [[ "$SKIP_START" != "true" ]] && [[ -f "$FORGE_CFG/daemon.py" ]]; then
   bash "$FORGE_CFG/forge-start.sh"
-  sleep 3
+  # Give daemon enough time to fully start before Telegram test
+  sleep 6
 
   # Health check
   STATUS=$(curl -s --max-time 5 http://localhost:2079/status 2>/dev/null || echo "")
@@ -752,13 +805,20 @@ echo -e "${BOLD}${GREEN}║         Forge installed successfully       ║${RESE
 echo -e "${BOLD}${GREEN}╚═══════════════════════════════════════════╝${RESET}"
 echo ""
 echo "  Commands:"
+echo "    forge           — open dashboard"
 echo "    forge-restart   — restart daemon"
+echo "    forge-setup     — reconfigure credentials"
 echo "    forge-logs      — tail live logs"
 echo "    forge-status    — health check"
 echo "    forge-stop      — stop daemon"
 echo ""
-echo "  Dashboard: open ~/.forge/dashboard.html in browser"
 echo "  Workspace: ~/Forge/"
 echo ""
-echo "  Reload shell:  source ~/.zshrc"
+echo "  Reload shell first:  source ~/.zshrc"
 echo ""
+
+# Auto-open dashboard on macOS
+if [[ "$(uname)" == "Darwin" ]] && [[ -f "$FORGE_CFG/dashboard.html" ]]; then
+  info "Opening dashboard..."
+  open "$FORGE_CFG/dashboard.html"
+fi
