@@ -645,45 +645,78 @@ class ForgeAI:
 
     @classmethod
     def _openai_responses(cls, system, messages, model, token):
-        """Call OpenAI Responses API using OAuth Bearer token (Codex CLI method)."""
+        """Call ChatGPT backend using OAuth Bearer token — mirrors Codex CLI architecture.
+        Endpoint: chatgpt.com/backend-api/codex/responses (NOT api.openai.com)
+        """
         import urllib.request, urllib.error
+
+        # Load account_id from token file (required header)
+        cfg = load_cfg()
+        account_id = cfg.get("providers", {}).get("openai", {}).get("account_id", "")
+        if not account_id:
+            token_file = cfg.get("providers", {}).get("openai", {}).get("token_file", "")
+            if token_file:
+                try:
+                    tok = json.loads(Path(token_file).read_text())
+                    account_id = tok.get("account_id", "")
+                except Exception:
+                    pass
+
         try:
-            # Build input: system prompt + conversation history
-            input_text = f"{system}\n\n"
+            # Build input array (Codex CLI format — not messages[])
+            input_items = []
             for m in messages[-10:]:
                 role = m.get("role", "user")
                 content = m.get("content", "")
-                input_text += f"{role.upper()}: {content}\n"
+                input_items.append({
+                    "type": "message",
+                    "role": role,
+                    "content": [{"type": "input_text", "text": content}]
+                })
 
             payload = json.dumps({
-                "model": model,
-                "input": input_text.strip(),
-                "max_output_tokens": 4096,
+                "model":        model,
+                "store":        False,      # required for ChatGPT backend
+                "stream":       False,
+                "instructions": system,
+                "input":        input_items,
+                "reasoning":    {"effort": "medium", "summary": "auto"},
             }).encode()
 
+            headers = {
+                "Authorization":    f"Bearer {token}",
+                "Content-Type":     "application/json",
+                "OpenAI-Beta":      "responses=experimental",
+                "originator":       "codex_cli_rs",
+                "accept":           "application/json",
+            }
+            if account_id:
+                headers["chatgpt-account-id"] = account_id
+
             req = urllib.request.Request(
-                "https://api.openai.com/v1/responses",
+                "https://chatgpt.com/backend-api/codex/responses",
                 data=payload,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type":  "application/json",
-                }
+                headers=headers
             )
             with urllib.request.urlopen(req, timeout=60) as r:
                 data = json.loads(r.read())
 
-            # Extract text from response
+            # Parse response — look for output text
             for item in data.get("output", []):
                 if item.get("type") == "message":
                     for part in item.get("content", []):
-                        if part.get("type") == "output_text":
+                        if part.get("type") in ("output_text", "text"):
                             return part.get("text", "")
+            # Fallback: try top-level text
+            if data.get("text"):
+                return data["text"]
             return str(data)
+
         except urllib.error.HTTPError as e:
             body = e.read().decode()
-            return f"OpenAI Responses API error {e.code}: {body}"
+            return f"ChatGPT API error {e.code}: {body}"
         except Exception as e:
-            return f"OpenAI error: {e}"
+            return f"OpenAI OAuth error: {e}"
 
     @staticmethod
     def _cursor_call(system, messages, model_key, cfg=None):

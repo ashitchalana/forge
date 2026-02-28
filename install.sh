@@ -673,9 +673,10 @@ if not server_running or not auth_code[0]:
         sys.exit(0)
     auth_code[0] = qs["code"][0]
 
-# ── Token exchange ────────────────────────────────────────────
+# ── Token exchange (form-encoded — matches Codex CLI) ─────────
 print("\n  Exchanging code for tokens...")
-body = json.dumps({
+from urllib.parse import urlencode as _urlencode
+body = _urlencode({
     "grant_type":    "authorization_code",
     "client_id":     CLIENT_ID,
     "code":          auth_code[0],
@@ -683,7 +684,7 @@ body = json.dumps({
     "code_verifier": verifier,
 }).encode()
 
-req = Request(TOKEN_URL, data=body, headers={"Content-Type": "application/json"})
+req = Request(TOKEN_URL, data=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
 try:
     with urlopen(req, timeout=15) as r:
         tokens = json.loads(r.read())
