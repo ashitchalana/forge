@@ -2989,8 +2989,9 @@ input:focus, textarea:focus, select:focus {
 // ══════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════
-let curAgent = 'FORGE';
-let curModel  = '';
+let curAgent    = 'FORGE';
+let curModel    = '';
+let curProvider = 'anthropic';
 let agents    = [];
 let theme     = localStorage.getItem('forge-theme') || 'light';
 const API     = 'http://localhost:2079';
@@ -3047,7 +3048,11 @@ async function loadStatus() {
   if (workspaceEl) workspaceEl.textContent = `${d.name || 'Forge'} Workspace · ${d.provider || 'AI'}`;
 
   // Render model cards for this provider
-  if (d.provider) renderModelCards(d.provider, d.primary_model);
+  if (d.provider) {
+    curProvider = d.provider;
+    curModel    = d.primary_model || curModel;
+    renderModelCards(d.provider, d.primary_model);
+  }
 
   // Update agent name everywhere dynamically
   const agentName = d.name || 'FORGE';
@@ -3353,9 +3358,14 @@ async function toggleHeartbeat(key) {
 async function saveSettings() {
   const owner = document.getElementById('cfg-owner')?.value.trim();
   if (owner) await api('/config/update', { owner });
+  // Save active model if changed
+  if (curModel && curProvider) {
+    await api('/model/change', { provider: curProvider, model: curModel }).catch(()=>{});
+  }
   showSavedToast('Settings saved');
   const tsEl = document.getElementById('profile-saved-ts');
   if (tsEl) tsEl.textContent = 'Saved ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  loadStatus();
 }
 
 function selectModelCard(el) {
@@ -3439,8 +3449,12 @@ function renderModelCards(provider, currentModel) {
       { id:'gpt-4o',                    name:'GPT-4o',          desc:'Reliable multimodal model.',                       badges:[{l:'Reliable',c:'mb-fast'},{l:'Multimodal',c:''}] },
     ],
     google: [
-      { id:'gemini-2.0-flash',          name:'Gemini 2 Flash',  desc:'Fast and efficient. Great for most tasks.',        badges:[{l:'Fast',c:'mb-fast'},{l:'Efficient',c:''}] },
-      { id:'gemini-1.5-pro',            name:'Gemini 1.5 Pro',  desc:'Full Gemini capability. Complex reasoning.',       badges:[{l:'Balanced',c:'mb-balance'},{l:'Capable',c:'mb-smart'}] },
+      { id:'gemini-2.5-pro',            name:'Gemini 2.5 Pro',   desc:'Most capable Gemini. Complex reasoning and strategy.',badges:[{l:'Most capable',c:'mb-smart'},{l:'Premium',c:'badge-gold'}] },
+      { id:'gemini-2.5-flash',          name:'Gemini 2.5 Flash', desc:'Fast 2.5 generation. Ideal for most tasks.',         badges:[{l:'Fast',c:'mb-fast'},{l:'Recommended',c:'mb-smart'}] },
+      { id:'gemini-2.0-pro',            name:'Gemini 2.0 Pro',   desc:'Powerful and reliable. Full Gemini 2 capability.',   badges:[{l:'Balanced',c:'mb-balance'},{l:'Capable',c:''}] },
+      { id:'gemini-2.0-flash',          name:'Gemini 2.0 Flash', desc:'Efficient and quick. Great for real-time tasks.',    badges:[{l:'Fast',c:'mb-fast'},{l:'Efficient',c:''}] },
+      { id:'gemini-1.5-pro',            name:'Gemini 1.5 Pro',   desc:'Proven Gemini 1.5 model. Strong general capability.',badges:[{l:'Reliable',c:'mb-balance'},{l:'Stable',c:''}] },
+      { id:'gemini-1.5-flash',          name:'Gemini 1.5 Flash', desc:'Lightweight 1.5. Fast responses at low cost.',       badges:[{l:'Fast',c:'mb-fast'},{l:'Low cost',c:''}] },
     ],
   };
 
