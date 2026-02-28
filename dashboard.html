@@ -3252,7 +3252,9 @@ async function loadStatus() {
   const hbEl = document.getElementById('hb-toggle');
   const hbNEl = document.getElementById('hb-notify-toggle');
   if (hbEl)  hbEl.className  = 'toggle' + (hb.enabled !== false ? ' on' : '');
-  if (hbNEl) hbNEl.className = 'toggle' + (hb.notify_telegram ? ' on' : '');
+  // notify_telegram defaults OFF — only on if user explicitly toggled it on this session
+  const notifyPref = localStorage.getItem('forge-hb-notify');
+  if (hbNEl) hbNEl.className = 'toggle' + (notifyPref === '1' ? ' on' : '');
 
   // Model selector — set current
   if (d.primary_model && !curModel) curModel = d.primary_model;
@@ -3561,8 +3563,19 @@ async function loadHeartbeats() {
 }
 
 async function toggleHeartbeat(key) {
-  await api('/heartbeat/toggle', { key });
-  await loadStatus();
+  if (key === 'enabled') {
+    const btn = document.getElementById('hb-toggle');
+    const isOn = btn?.classList.contains('on');
+    await api('/heartbeat/toggle', { enabled: !isOn }).catch(()=>{});
+    if (btn) btn.className = 'toggle' + (!isOn ? ' on' : '');
+  } else if (key === 'notify_telegram') {
+    // Daemon has no endpoint for this — store preference locally
+    const btn = document.getElementById('hb-notify-toggle');
+    const isOn = btn?.classList.contains('on');
+    const next = !isOn;
+    if (btn) btn.className = 'toggle' + (next ? ' on' : '');
+    localStorage.setItem('forge-hb-notify', next ? '1' : '0');
+  }
 }
 
 // ══════════════════════════════════════════
