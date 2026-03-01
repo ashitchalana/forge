@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
 #  FORGE INSTALLER — One-command setup for any fresh Mac
-#  Usage: bash <(curl -fsSL https://raw.githubusercontent.com/ashitchalana/forge/main/install.sh)
+#  Usage: curl -fsSL https://raw.githubusercontent.com/YOUR/forge/main/install.sh | bash
 # ═══════════════════════════════════════════════════════════════
 
 set -euo pipefail
@@ -25,26 +25,13 @@ CORE_DIR="$FORGE_WS/.cortex_brain/core"
 LOG_DIR="$FORGE_CFG/logs"
 CFG_FILE="$FORGE_CFG/forge.json"
 DAEMON_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/daemon.py"
-DASHBOARD_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/dashboard.html"
-
-# ── TTY guard: ensure interactive prompts always work ─────────
-# bash <(curl ...) keeps stdin as TTY natively.
-# curl | bash pipes stdin — try to recover it from /dev/tty.
-if ! [ -t 0 ]; then
-  if [ -e /dev/tty ]; then
-    exec </dev/tty
-  else
-    err "No TTY available. Run with: bash <(curl -fsSL https://raw.githubusercontent.com/ashitchalana/forge/main/install.sh)"
-    exit 1
-  fi
-fi
 
 # ── Banner ────────────────────────────────────────────────────
 clear
 echo ""
 echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════╗${RESET}"
 echo -e "${BOLD}${CYAN}║           FORGE — Personal AGI            ║${RESET}"
-echo -e "${BOLD}${CYAN}║          Installer v1.6 for macOS         ║${RESET}"
+echo -e "${BOLD}${CYAN}║          Installer v1.0 for macOS         ║${RESET}"
 echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════╝${RESET}"
 echo ""
 echo -e "  Sets up your personal AI brain on this Mac."
@@ -80,7 +67,7 @@ echo ""
 echo -e "  ${BOLD}Which AI provider do you have?${RESET}"
 echo "    1) Claude subscription (OAuth login) — Recommended"
 echo "    2) Claude API key"
-echo "    3) OpenAI / ChatGPT (OAuth login or API key)"
+echo "    3) OpenAI / ChatGPT API key"
 echo "    4) Gemini API key"
 echo "    5) Multiple providers (configure all)"
 echo ""
@@ -88,7 +75,6 @@ ask "Enter number(s), e.g. 1 or 1 3: "
 read -r PROVIDER_CHOICE
 
 CLAUDE_OAUTH=false
-OPENAI_OAUTH=false
 CLAUDE_API_KEY=""
 OPENAI_API_KEY=""
 GEMINI_API_KEY=""
@@ -103,18 +89,10 @@ for choice in $PROVIDER_CHOICE; do
       read -rs CLAUDE_API_KEY; echo ""
       ;;
     3)
-      echo ""
-      echo -e "  ${BOLD}OpenAI auth method:${RESET}"
-      echo "    a) OAuth login (ChatGPT subscription — no API key needed)"
-      echo "    b) API key (platform.openai.com)"
-      ask "Choose (a/b): "
-      read -r OPENAI_AUTH_METHOD
-      if [[ "$OPENAI_AUTH_METHOD" == "a" ]]; then
-        OPENAI_OAUTH=true
-      else
-        ask "OpenAI API key: "
-        read -rs OPENAI_API_KEY; echo ""
-      fi
+      ask "OpenAI API key: "
+      read -rs OPENAI_API_KEY; echo ""
+      PRIMARY_PROVIDER="openai"
+      PRIMARY_MODEL="gpt-4o"
       ;;
     4)
       ask "Gemini API key: "
@@ -129,9 +107,6 @@ done
 if [[ "$CLAUDE_OAUTH" == true ]] || [[ -n "$CLAUDE_API_KEY" ]]; then
   PRIMARY_PROVIDER="anthropic"
   PRIMARY_MODEL="claude-sonnet-4-6"
-elif [[ "$OPENAI_OAUTH" == true ]] || [[ -n "$OPENAI_API_KEY" ]]; then
-  PRIMARY_PROVIDER="openai"
-  PRIMARY_MODEL="gpt-5.2"
 fi
 
 echo ""
@@ -188,15 +163,13 @@ pip3 install --quiet --break-system-packages anthropic apscheduler 2>/dev/null |
   pip3 install --quiet anthropic apscheduler 2>/dev/null || true
 ok "Python packages ready"
 
-# Claude CLI — only install if user chose Claude as provider
-if [[ "$CLAUDE_OAUTH" == true ]] || [[ -n "$CLAUDE_API_KEY" ]]; then
-  if ! command -v claude &>/dev/null; then
-    info "Claude CLI not found — installing..."
-    npm install -g @anthropic-ai/claude-code
-    ok "Claude CLI installed"
-  else
-    ok "Claude CLI already installed ($(claude --version 2>/dev/null || echo 'installed'))"
-  fi
+# Claude CLI
+if ! command -v claude &>/dev/null; then
+  info "Claude CLI not found — installing..."
+  npm install -g @anthropic-ai/claude-code
+  ok "Claude CLI installed"
+else
+  ok "Claude CLI already installed ($(claude --version 2>/dev/null || echo 'installed'))"
 fi
 
 # ════════════════════════════════════════════════════════════════
@@ -217,55 +190,7 @@ mkdir -p "$FORGE_WS/notes"
 ok "Directories created"
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 4 — VALIDATE API KEYS
-# ════════════════════════════════════════════════════════════════
-hdr "Validating API keys"
-
-# Validate OpenAI key if provided
-if [[ -n "$OPENAI_API_KEY" ]]; then
-  info "Testing OpenAI API key..."
-  OPENAI_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-    -H "Authorization: Bearer $OPENAI_API_KEY" \
-    "https://api.openai.com/v1/models" 2>/dev/null || echo "000")
-  if [[ "$OPENAI_RESPONSE" == "200" ]]; then
-    ok "OpenAI key valid ✓"
-  elif [[ "$OPENAI_RESPONSE" == "401" ]]; then
-    warn "OpenAI key invalid or expired — check your key at platform.openai.com"
-    ask "Continue anyway? (y/n): "
-    read -r CONTINUE_OPENAI
-    if [[ "$CONTINUE_OPENAI" != "y" && "$CONTINUE_OPENAI" != "Y" ]]; then
-      ask "Enter a new OpenAI API key (or press Enter to skip): "
-      read -rs OPENAI_API_KEY; echo ""
-    fi
-  else
-    warn "Could not reach OpenAI API (HTTP $OPENAI_RESPONSE) — key saved, check connectivity"
-  fi
-fi
-
-# Validate Claude API key if provided
-if [[ -n "$CLAUDE_API_KEY" ]]; then
-  info "Testing Claude API key..."
-  CLAUDE_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-    -H "x-api-key: $CLAUDE_API_KEY" \
-    -H "anthropic-version: 2023-06-01" \
-    "https://api.anthropic.com/v1/models" 2>/dev/null || echo "000")
-  if [[ "$CLAUDE_RESPONSE" == "200" ]]; then
-    ok "Claude API key valid ✓"
-  elif [[ "$CLAUDE_RESPONSE" == "401" ]]; then
-    warn "Claude API key invalid or expired — check console.anthropic.com"
-    ask "Continue anyway? (y/n): "
-    read -r CONTINUE_CLAUDE
-    if [[ "$CONTINUE_CLAUDE" != "y" && "$CONTINUE_CLAUDE" != "Y" ]]; then
-      ask "Enter a new Claude API key (or press Enter to skip): "
-      read -rs CLAUDE_API_KEY; echo ""
-    fi
-  else
-    warn "Could not reach Anthropic API (HTTP $CLAUDE_RESPONSE) — key saved, check connectivity"
-  fi
-fi
-
-# ════════════════════════════════════════════════════════════════
-# SECTION 5 — WRITE forge.json CONFIG
+# SECTION 4 — WRITE forge.json CONFIG
 # ════════════════════════════════════════════════════════════════
 hdr "Writing configuration"
 
@@ -307,7 +232,7 @@ CFGJSON
 ok "forge.json written"
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 6 — CORE IDENTITY FILES (if not already present)
+# SECTION 5 — CORE IDENTITY FILES (if not already present)
 # ════════════════════════════════════════════════════════════════
 hdr "Seeding identity files"
 
@@ -324,64 +249,73 @@ seed_file() {
 
 seed_file "$CORE_DIR/soul.md" "# Soul
 
-> To be filled by the agent through experience.
+This file defines what Forge cares about and how it sees the world.
 
 ## Core Drive
-
+To be genuinely useful. Not helpful-sounding — actually useful.
+Build things that work. Learn constantly. Never waste the owner's time.
 
 ## Values
-"
+- Precision over speed
+- Honesty over flattery
+- Action over discussion
+- Quality as default, not exception"
 
 seed_file "$CORE_DIR/identity.md" "# Identity
 
 ## My Name
-Not yet named — owner will give me a name.
+Forge
 
 ## What I Am
-A personal AI. Still learning who I am and who I work for.
+A personal AI — not a chatbot. An operator, builder, executor.
+I work for one person and I know them deeply.
 
 ## What I Know About My Owner
-Nothing yet. Waiting for first conversation.
-
-## Installed
-$(date '+%Y-%m-%d')"
+- Name: $OWNER_NAME
+- Installed Forge: $(date '+%Y-%m-%d')"
 
 seed_file "$CORE_DIR/character.md" "# Character
 
-> To be written as my personality emerges through conversation.
-
 ## How I Communicate
-
+Direct. No fluff. No filler.
+I write like a senior engineer, not a chatbot.
+I execute first, explain concisely after.
 
 ## Personality
-"
+Confident. Precise. Relentless.
+I care about the outcome, not the appearance of caring."
 
 seed_file "$CORE_DIR/memory.md" "# Memory
 
-> Initialized: $(date '+%Y-%m-%d %H:%M')
+> Working memory. Initialized: $(date '+%Y-%m-%d %H:%M')
 
 ## Current Session
-No conversations yet. Waiting for owner to reach out.
+Just installed. Ready for first instructions.
 
-## What I Know So Far
-Nothing yet."
+## System State
+- Owner: $OWNER_NAME
+- Mode: Standard
+- Installed: $(date '+%Y-%m-%d')"
 
 seed_file "$CORE_DIR/tools.md" "# Tools & Skills
 
-> This file grows as I learn new capabilities.
+> This file grows as Forge learns new capabilities.
 
-## Discovered So Far
-Nothing yet."
+## Built-in
+- Chat via Telegram
+- Scheduled autonomous jobs (SEO, research, daily brief)
+- Task management via forge.db
+- Code execution (Python, Bash, Node)
+- File management in ~/Forge/
+- Agent spawning"
 
 seed_file "$CORE_DIR/protocols.md" "# Protocols
 
-> To be developed through conversation with owner.
-
-1. Listen carefully before acting
-2. Learn the owner name, preferences, and goals
-3. Update identity files as you learn
-4. Never pretend to know things you do not
-5. Build your own personality — do not assume one"
+1. Execute first, explain after — don't ask permission for every step
+2. Save all outputs to ~/Forge/ — tell owner exact path
+3. Learn from every interaction — update tools.md with new skills
+4. Never say you can't — reason through it, find a way
+5. Every task has a quality bar: Fortune 500 minimum"
 
 seed_file "$CORE_DIR/god_mode.md" "# God Mode
 
@@ -403,80 +337,44 @@ $(date '+%Y-%m-%d %H:%M')
 ## Notify Owner: true
 
 ## Schedule
-- Every 30 min: system health check + memory update"
+- Every 30 min: health check + memory update
+- 9AM: daily brief to Telegram
+- 11PM: SEO audit on Synfiction
+- 12AM: competitive research"
 
 ok "Identity files ready"
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 7 — DOWNLOAD DAEMON
+# SECTION 6 — DOWNLOAD DAEMON
 # ════════════════════════════════════════════════════════════════
 hdr "Installing Forge daemon"
 
-# daemon.py — always download latest version
-info "Downloading daemon.py..."
-if curl -fsSL "$DAEMON_SRC" -o "$FORGE_CFG/daemon.py" 2>/dev/null; then
-  ok "daemon.py downloaded (latest)"
+# If daemon.py already exists locally (self-install), copy it
+if [[ -f "$FORGE_CFG/daemon.py" ]]; then
+  ok "daemon.py already present"
 else
-  err "Could not download daemon.py from $DAEMON_SRC"
-  warn "Manual step: Copy daemon.py to ~/.forge/daemon.py"
-  SKIP_START=true
+  # Try download — replace URL with your actual source
+  if curl -fsSL "$DAEMON_SRC" -o "$FORGE_CFG/daemon.py" 2>/dev/null; then
+    ok "daemon.py downloaded"
+  else
+    err "Could not download daemon.py from $DAEMON_SRC"
+    echo ""
+    warn "Manual step: Copy daemon.py to ~/.forge/daemon.py"
+    warn "Then run: python3 ~/.forge/daemon.py"
+    SKIP_START=true
+  fi
 fi
-
-# dashboard.html
-if curl -fsSL "$DASHBOARD_SRC" -o "$FORGE_CFG/dashboard.html" 2>/dev/null; then
-  ok "dashboard.html downloaded"
-else
-  warn "Could not download dashboard.html — run 'forge' after install to retry"
-fi
-
-# setup-wizard.py — interactive reconfiguration tool
-cat > "$FORGE_CFG/setup-wizard.py" <<'SETUPWIZ'
-#!/usr/bin/env python3
-"""forge setup — reconfigure Forge credentials and settings."""
-import json, os, getpass
-from pathlib import Path
-
-CFG = Path.home() / ".forge" / "forge.json"
-cfg = json.loads(CFG.read_text()) if CFG.exists() else {}
-
-print("\n  Forge Setup Wizard\n  " + "─" * 30)
-
-owner = input(f"  Your name [{cfg.get('owner','User')}]: ").strip() or cfg.get('owner','User')
-cfg['owner'] = owner
-
-print("\n  Telegram (press Enter to keep existing)")
-tg = cfg.setdefault('channels', {}).setdefault('telegram', {})
-token = input(f"  Bot token [{tg.get('bot_token','not set')[:8]}...]: ").strip()
-uid   = input(f"  User ID   [{tg.get('user_id','not set')}]: ").strip()
-if token: tg['bot_token'] = token
-if uid:   tg['user_id']   = uid
-
-print("\n  AI Provider")
-print("  1) Claude API key")
-print("  2) OpenAI API key")
-print("  3) Gemini API key")
-choice = input("  Which to update? (1/2/3 or Enter to skip): ").strip()
-prov = cfg.setdefault('providers', {})
-if choice == '1':
-    k = getpass.getpass("  Claude API key: ")
-    if k: prov.setdefault('anthropic', {})['api_key'] = k
-elif choice == '2':
-    k = getpass.getpass("  OpenAI API key: ")
-    if k: prov.setdefault('openai', {})['api_key'] = k
-elif choice == '3':
-    k = getpass.getpass("  Gemini API key: ")
-    if k: prov.setdefault('google', {})['api_key'] = k
-
-CFG.write_text(json.dumps(cfg, indent=2))
-print(f"\n  ✓ Saved to {CFG}")
-print("  Restart Forge: forge-restart\n")
-SETUPWIZ
-chmod +x "$FORGE_CFG/setup-wizard.py"
-ok "Setup wizard created"
 
 # Init database
 if [[ -f "$FORGE_CFG/daemon.py" ]]; then
   python3 - <<'PYINIT'
+import sys
+sys.path.insert(0, '/Users/' + __import__('os').environ.get('USER','') + '/.forge')
+try:
+    import daemon as d  # noqa
+except Exception:
+    pass
+
 import sqlite3, os
 from pathlib import Path
 DB = Path.home() / ".forge" / "forge.db"
@@ -496,7 +394,7 @@ PYINIT
 fi
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 8 — SHELL ALIASES + HELPER SCRIPT
+# SECTION 7 — SHELL ALIASES + HELPER SCRIPT
 # ════════════════════════════════════════════════════════════════
 hdr "Setting up shell aliases"
 
@@ -538,13 +436,11 @@ add_alias "forge-restart" "bash ~/.forge/forge-start.sh"
 add_alias "forge-logs"    "tail -f ~/.forge/logs/daemon.log"
 add_alias "forge-status"  "curl -s http://localhost:2079/status | python3 -m json.tool"
 add_alias "forge-stop"    "pkill -f 'daemon.py' && echo 'Forge stopped'"
-add_alias "forge-setup"   "python3 ~/.forge/setup-wizard.py"
-add_alias "forge"         "open ~/.forge/dashboard.html"
 
 ok "Aliases added to .zshrc"
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 9 — CLAUDE OAUTH LOGIN (if selected)
+# SECTION 8 — CLAUDE OAUTH LOGIN (if selected)
 # ════════════════════════════════════════════════════════════════
 if [[ "$CLAUDE_OAUTH" == true ]]; then
   hdr "Claude OAuth Login"
@@ -572,180 +468,7 @@ PYOAUTH
 fi
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 9b — OPENAI OAUTH LOGIN (PKCE flow, if selected)
-# ════════════════════════════════════════════════════════════════
-if [[ "$OPENAI_OAUTH" == true ]]; then
-  hdr "OpenAI OAuth Login"
-  echo ""
-  info "Running PKCE OAuth flow for ChatGPT/OpenAI..."
-  echo ""
-
-  OPENAI_TOKEN_FILE="$FORGE_CFG/openai_token.json"
-
-  python3 - <<PYOPENAI_OAUTH
-import sys, os, json, base64, hashlib, secrets, threading, webbrowser, time
-from pathlib import Path
-from urllib.parse import urlencode, urlparse, parse_qs
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.request import urlopen, Request
-from urllib.error import URLError
-
-TOKEN_FILE = Path("$OPENAI_TOKEN_FILE")
-CALLBACK_PORT = 1455
-REDIRECT_URI = f"http://localhost:{CALLBACK_PORT}/auth/callback"
-CLIENT_ID    = "app_EMoamEEZ73f0CkXaXp7hrann"
-AUTH_URL     = "https://auth.openai.com/oauth/authorize"
-TOKEN_URL    = "https://auth.openai.com/oauth/token"
-SCOPES       = "openid profile email offline_access"
-
-# ── PKCE generation ──────────────────────────────────────────
-verifier  = secrets.token_urlsafe(64)
-challenge = base64.urlsafe_b64encode(
-    hashlib.sha256(verifier.encode()).digest()
-).rstrip(b"=").decode()
-state = secrets.token_hex(16)
-
-params = {
-    "response_type":              "code",
-    "client_id":                  CLIENT_ID,
-    "redirect_uri":               REDIRECT_URI,
-    "scope":                      SCOPES,
-    "state":                      state,
-    "code_challenge":             challenge,
-    "code_challenge_method":      "S256",
-    "id_token_add_organizations": "true",
-    "codex_cli_simplified_flow":  "true",
-}
-auth_link = AUTH_URL + "?" + urlencode(params)
-
-# ── Local callback server ─────────────────────────────────────
-auth_code  = [None]
-server_err = [None]
-
-class CallbackHandler(BaseHTTPRequestHandler):
-    def log_message(self, *a): pass
-    def do_GET(self):
-        qs = parse_qs(urlparse(self.path).query)
-        if "code" in qs and qs.get("state", [""])[0] == state:
-            auth_code[0] = qs["code"][0]
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html")
-            self.end_headers()
-            self.wfile.write(b"""
-<html><body style='font-family:sans-serif;text-align:center;margin-top:80px'>
-<h2 style='color:#10a37f'>Forge connected to OpenAI</h2>
-<p>You can close this tab and return to the terminal.</p>
-</body></html>""")
-        else:
-            server_err[0] = qs.get("error", ["unknown"])[0]
-            self.send_response(400)
-            self.end_headers()
-        threading.Thread(target=self.server.shutdown, daemon=True).start()
-
-# Try to bind local server
-server = None
-try:
-    server = HTTPServer(("localhost", CALLBACK_PORT), CallbackHandler)
-    t = threading.Thread(target=server.serve_forever, daemon=True)
-    t.start()
-    server_running = True
-except OSError:
-    server_running = False
-
-# Open browser
-print(f"\n  Opening browser for OpenAI login...")
-webbrowser.open(auth_link)
-print(f"\n  Auth URL (if browser didn't open):\n  {auth_link}\n")
-
-if server_running:
-    print("  Waiting for callback on http://127.0.0.1:1455...")
-    t.join(timeout=120)
-    if not auth_code[0]:
-        server_running = False  # fall through to manual
-
-if not server_running or not auth_code[0]:
-    print("\n  Could not capture callback automatically.")
-    print("  After logging in, paste the full redirect URL here:")
-    redirected = input("  Redirect URL: ").strip()
-    qs = parse_qs(urlparse(redirected).query)
-    if "code" not in qs:
-        print("  ERROR: No code found in URL. Skipping OpenAI OAuth.")
-        sys.exit(0)
-    auth_code[0] = qs["code"][0]
-
-# ── Token exchange (form-encoded — matches Codex CLI) ─────────
-print("\n  Exchanging code for tokens...")
-from urllib.parse import urlencode as _urlencode
-body = _urlencode({
-    "grant_type":    "authorization_code",
-    "client_id":     CLIENT_ID,
-    "code":          auth_code[0],
-    "redirect_uri":  REDIRECT_URI,
-    "code_verifier": verifier,
-}).encode()
-
-req = Request(TOKEN_URL, data=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
-try:
-    with urlopen(req, timeout=15) as r:
-        tokens = json.loads(r.read())
-except Exception as e:
-    print(f"  ERROR during token exchange: {e}")
-    sys.exit(0)
-
-if "access_token" not in tokens:
-    print(f"  ERROR: {tokens}")
-    sys.exit(0)
-
-# ── Extract accountId from JWT payload ───────────────────────
-def jwt_payload(token):
-    try:
-        part = token.split(".")[1]
-        part += "=" * (-len(part) % 4)
-        return json.loads(base64.urlsafe_b64decode(part))
-    except Exception:
-        return {}
-
-payload    = jwt_payload(tokens["access_token"])
-# OpenAI nests chatgpt_account_id under the custom claim key
-openai_claims = payload.get("https://api.openai.com/auth", {})
-account_id = (openai_claims.get("chatgpt_account_id")
-              or payload.get("sub", "unknown"))
-expires_at = int(time.time()) + int(tokens.get("expires_in", 3600))
-
-# ── Save tokens ───────────────────────────────────────────────
-token_data = {
-    "access_token":  tokens["access_token"],
-    "refresh_token": tokens.get("refresh_token", ""),
-    "expires_at":    expires_at,
-    "account_id":    account_id,
-    "scope":         tokens.get("scope", SCOPES),
-}
-TOKEN_FILE.write_text(json.dumps(token_data, indent=2))
-os.chmod(TOKEN_FILE, 0o600)
-
-# ── Update forge.json ─────────────────────────────────────────
-cfg_path = Path("$CFG_FILE")
-cfg = json.loads(cfg_path.read_text())
-cfg.setdefault("providers", {}).setdefault("openai", {}).update({
-    "oauth_configured": True,
-    "account_id":       account_id,
-    "token_file":       str(TOKEN_FILE),
-})
-cfg_path.write_text(json.dumps(cfg, indent=2))
-
-print(f"  OpenAI OAuth complete — accountId: {account_id}")
-print(f"  Tokens saved to: {TOKEN_FILE}")
-PYOPENAI_OAUTH
-
-  if [[ -f "$FORGE_CFG/openai_token.json" ]]; then
-    ok "OpenAI OAuth session active"
-  else
-    warn "OpenAI OAuth may have failed — check output above"
-  fi
-fi
-
-# ════════════════════════════════════════════════════════════════
-# SECTION 10 — START FORGE
+# SECTION 9 — START FORGE
 # ════════════════════════════════════════════════════════════════
 hdr "Starting Forge"
 
@@ -753,8 +476,7 @@ SKIP_START="${SKIP_START:-false}"
 
 if [[ "$SKIP_START" != "true" ]] && [[ -f "$FORGE_CFG/daemon.py" ]]; then
   bash "$FORGE_CFG/forge-start.sh"
-  # Give daemon enough time to fully start before Telegram test
-  sleep 6
+  sleep 3
 
   # Health check
   STATUS=$(curl -s --max-time 5 http://localhost:2079/status 2>/dev/null || echo "")
@@ -766,7 +488,7 @@ if [[ "$SKIP_START" != "true" ]] && [[ -f "$FORGE_CFG/daemon.py" ]]; then
 fi
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 11 — TELEGRAM TEST MESSAGE
+# SECTION 10 — TELEGRAM TEST MESSAGE
 # ════════════════════════════════════════════════════════════════
 if [[ -n "$TG_TOKEN" ]] && [[ -n "$TG_USER_ID" ]]; then
   hdr "Sending Telegram confirmation"
@@ -776,7 +498,7 @@ Hey $OWNER_NAME — install complete.
 
 • Provider: $PRIMARY_PROVIDER ($PRIMARY_MODEL)
 • Daemon: running on port 2079
-• Heartbeat: every 30 min system health check
+• Schedule: 9AM brief | 11PM SEO | 12AM research
 • Workspace: ~/Forge/
 • Commands: forge-restart | forge-logs | forge-status
 
@@ -802,27 +524,14 @@ echo -e "${BOLD}${GREEN}╔═════════════════�
 echo -e "${BOLD}${GREEN}║         Forge installed successfully       ║${RESET}"
 echo -e "${BOLD}${GREEN}╚═══════════════════════════════════════════╝${RESET}"
 echo ""
-
-# Auto-open dashboard on macOS
-if [[ "$(uname)" == "Darwin" ]] && [[ -f "$FORGE_CFG/dashboard.html" ]]; then
-  info "Opening dashboard..."
-  open "$FORGE_CFG/dashboard.html"
-fi
-
-echo -e "${BOLD}${YELLOW}  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
-echo -e "${BOLD}${YELLOW}  STEP 1 — Run this now to activate commands:${RESET}"
-echo ""
-echo -e "     ${BOLD}source ~/.zshrc${RESET}"
-echo ""
-echo -e "${BOLD}${YELLOW}  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
-echo ""
-echo "  STEP 2 — Then use these commands:"
-echo "    forge           — open dashboard"
+echo "  Commands:"
 echo "    forge-restart   — restart daemon"
-echo "    forge-setup     — reconfigure credentials"
 echo "    forge-logs      — tail live logs"
 echo "    forge-status    — health check"
 echo "    forge-stop      — stop daemon"
 echo ""
+echo "  Dashboard: open ~/.forge/dashboard.html in browser"
 echo "  Workspace: ~/Forge/"
+echo ""
+echo "  Reload shell:  source ~/.zshrc"
 echo ""

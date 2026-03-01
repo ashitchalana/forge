@@ -1,84 +1,58 @@
-# Forge
+# Forge — Personal AGI OS
 
-**Your autonomous AI brain. Runs 24/7. Executes while you sleep.**
+Forge is a self-hosted autonomous AI operating system. It runs a persistent gateway on your machine, connects to Telegram and Discord, manages tasks, spawns parallel AI agents, and gives you a full Mission Control dashboard.
 
-Most people use AI as a chatbot. Forge is different — it's an agent that thinks, plans, and acts. You give it goals. It gets them done.
+## What it does
 
----
+- **Gateway** — Single Node.js process (port 2077) handles all communication
+- **Daemon** — Python HTTP server (port 2079) manages memory, tasks, agents, heartbeats
+- **Dashboard** — Browser-based Mission Control at `http://localhost:2077`
+- **Multi-Agent OS** — Spawn named AI agents with custom roles and identity files
+- **CORTEX Orchestrator** — Routes complex tasks to parallel agents, quality-gates output
+- **Telegram + Discord** — Full bot integration, voice/image/video support
+- **Task Tracker** — Kanban board wired to SQLite, updated in real-time
 
-## Install in 30 seconds
+## Quick Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ashitchalana/forge/main/install.sh | bash
 ```
 
-One command. Works on Mac. No config files, no API dashboards, no friction.
-
----
-
-## What makes Forge different
-
-Every AI tool gives you answers. Forge gives you *outcomes*.
-
-It runs as a persistent local daemon — always on, always ready. When you're in meetings, sleeping, or building something else, Forge is working. It holds memory across every conversation. It learns your context over time. It executes multi-step tasks autonomously without needing you to hold its hand.
-
-**Connects to any major AI provider:**
-- Anthropic (Claude)
-- OpenAI (GPT)
-- Google (Gemini)
-
-Switch models in one click. No re-configuration.
-
----
-
-## Core capabilities
-
-- **Autonomous task execution** — give it a goal, it breaks it down and executes step by step
-- **Persistent memory** — remembers context, decisions, and learnings across every session
-- **Multi-agent coordination** — spawn parallel agents for independent workstreams
-- **Telegram integration** — send it tasks and receive updates from anywhere in the world
-- **Health monitoring** — heartbeat checks every 30 minutes, self-reports on issues
-- **Mission Control dashboard** — full visibility into tasks, agents, memory, and system health
-
----
-
-## Mission Control
-
-Open `dashboard.html` in your browser. No server required — connects directly to your local daemon.
-
-Real-time view of everything Forge is doing. Kanban task board, agent status, memory explorer, system metrics. Built to Fortune 500 standard.
-
----
-
-## Terminal commands
+## Manual Setup
 
 ```bash
-forge-restart   # restart the daemon
-forge-logs      # tail live logs
-forge-status    # health check
-forge-stop      # stop the daemon
+git clone https://github.com/ashitchalana/forge.git ~/.forge
+cd ~/.forge
+# Edit forge.json with your API keys and Telegram/Discord tokens
+node gateway.js
 ```
 
----
+## Agent System
 
-## Architecture
+Agents live in `~/.forge/agents/[NAME]/` with 7 identity files each:
+- `soul.md` — core identity (used as `--system-prompt`)
+- `identity.md` — role and jurisdiction
+- `character.md` — tone and communication style
+- `tools.md` — capabilities
+- `memory.md` — working context
+- `god_mode.md` — permissions and hard limits
+- `protocols.md` — task execution workflow
 
-```
-daemon.py        — core brain: HTTP server, memory, task engine, scheduler
-install.sh       — one-command Mac installer
-dashboard.html   — Mission Control UI
-```
+Create a new agent via the dashboard Spawn modal or `/spawn` API endpoint.
 
-Runs on `localhost:2079`. SQLite for local storage. No cloud dependency. Your data stays on your machine.
+## Stack
 
----
+- **Gateway:** Node.js (zero npm dependencies)
+- **Daemon:** Python 3 (stdlib only)
+- **Dashboard:** Vanilla HTML/CSS/JS
+- **AI:** Anthropic Claude, OpenAI GPT (configurable)
+- **Storage:** SQLite via `~/.forge/forge.db`
+- **Comms:** Telegram Bot API, Discord Bot
 
-## Who this is for
+## Config
 
-Founders, operators, and builders who are done with tools that require babysitting.
+`~/.forge/forge.json` — API keys, model selection, channel tokens. Never committed.
 
-If you want an AI that runs in the background and gets things done — this is it.
+## License
 
----
-
-*Built to be the last AI setup you ever do.*
+MIT

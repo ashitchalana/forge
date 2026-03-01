@@ -1,0 +1,43 @@
+# ── Personal data — NEVER commit ──────────────────────────
+forge.db
+forge.json
+tg_offset.json
+claude_session.json
+*.pid
+*.bak
+
+# ── Agent workspaces — created per-user on install ────────
+agents/
+
+# ── Logs & runtime ────────────────────────────────────────
+logs/
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Personal reports / memory / plans ────────────────────
+reports/
+memory/
+plans/
+docs/
+
+# ── Build artifacts ───────────────────────────────────────
+builds/
+node_modules/
+
+# ── Scripts with personal paths ──────────────────────────
+forge_cmd.sh
+forge-launch.sh
+start.sh
+stop.sh
+watch.sh
+selector.sh
+set_token.py
+setup.sh
+scripts/
+
+# ── Sensitive skill files ─────────────────────────────────
+skills/
+
+# ── Core brain files (personal) ──────────────────────────
+core/
