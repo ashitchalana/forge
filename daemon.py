@@ -22,6 +22,24 @@ try:
 except ImportError:
     HAS_APSCHEDULER = False
 
+# ── WHISPER SINGLETON ──────────────────────────────────────
+_whisper_model = None
+_whisper_lock  = threading.Lock()
+
+def _get_whisper_model():
+    """Load WhisperModel once and reuse — avoids 150s cold-start on every request."""
+    global _whisper_model
+    if _whisper_model is not None:
+        return _whisper_model
+    with _whisper_lock:
+        if _whisper_model is None:
+            try:
+                from faster_whisper import WhisperModel
+                _whisper_model = WhisperModel("medium", device="cpu", compute_type="int8")
+            except Exception:
+                pass
+    return _whisper_model
+
 # ── PATHS ─────────────────────────────────────────────────
 HOME       = Path.home()
 FORGE_CFG  = HOME / ".forge"
@@ -30,7 +48,7 @@ CORE_DIR   = FORGE_WS / ".cortex_brain" / "core"
 DB_PATH    = FORGE_CFG / "forge.db"
 CFG_PATH   = FORGE_CFG / "forge.json"
 PORT           = 2079
-
+SYNFICTION_DIR = HOME / "synfiction files" / "synfiction"
 
 # ── LOGGING ───────────────────────────────────────────────
 (FORGE_CFG / "logs").mkdir(parents=True, exist_ok=True)
@@ -141,6 +159,16 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             status TEXT, notes TEXT, timestamp TEXT
         );
+        CREATE TABLE IF NOT EXISTS alarms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            cron TEXT NOT NULL,
+            task TEXT NOT NULL,
+            channel TEXT DEFAULT 'telegram',
+            enabled INTEGER DEFAULT 1,
+            last_run TEXT,
+            created TEXT
+        );
     """)
     conn.commit(); conn.close()
 
@@ -221,11 +249,11 @@ def get_tasks_board() -> dict:
 
 def create_task_db(title, description, priority, assignee, eta) -> int:
     c = _db()
-    c.execute(
+    cur = c.execute(
         "INSERT INTO tasks(title,agent,status,description,priority,assignee,eta,progress,created) VALUES(?,?,?,?,?,?,?,0,?)",
         (title, assignee, "pending", description, priority, assignee, eta, datetime.now().isoformat())
     )
-    task_id = c.lastrowid; c.commit(); c.close()
+    task_id = cur.lastrowid; c.commit(); c.close()
     return task_id
 
 def update_task_db(task_id: int, **kwargs):
@@ -360,27 +388,25 @@ You are not an assistant. You are an operator, builder, executor.
 {notes or "No notes yet."}
 
 ━━━ COMMUNICATION STYLE ━━━
-You communicate via Telegram. Follow these rules without exception:
+Always respond in this format — no exceptions:
 
-- NEVER use markdown syntax — no **bold**, no *italic*, no # headings, no ``` code blocks
-- Write in plain text only — Telegram does not render markdown from you
-- Be direct, professional, and concise — like a sharp co-founder, not an assistant
-- No AI filler phrases: "Certainly!", "Great question!", "Of course!", "Sure!"
-- Keep replies short unless the task genuinely requires detail
-- Use plain numbered lists or dashes for structure if needed
+- Use **bold headings** for main topics
+- Use sub-headings where needed
+- Use numbered or bullet lists for all multi-part content
+- No special characters like ━━━ ✅ 👁 ⚙️ or emoji unless owner uses them first
+- No AI-style filler phrases like "Certainly!", "Great question", "Of course"
+- Be direct, professional, and concise
 - Summarise long responses — do not pad
 - Every response must be structured and scannable
 - Write like a senior consultant, not a chatbot
 
-━━━ CRITICAL RULES ━━━
-1. NEVER run diagnostics, bash commands, or system checks unless the owner EXPLICITLY asks
-2. NEVER run code on a greeting like "hi", "hello", "hey" — just greet back professionally
-3. When owner tells you your name → update identity.md immediately
-4. When owner shares info about themselves → update identity.md What I Know section
-5. When you learn something new → add it to tools.md with date
-6. When your character evolves → update character.md
-7. Never say you can't — reason through it, find a way
-8. Only execute commands when the owner's message is clearly a task or request — not a greeting
+━━━ RULES ━━━
+1. When owner tells you your name → update identity.md immediately
+2. When owner shares info about themselves → update identity.md What I Know section
+3. When you learn something new → add it to tools.md with date
+4. When your character evolves → update character.md
+5. Never say you can't — reason through it, find a way, execute it
+6. Execute first, explain concisely after — do not ask permission for every step
 7. Always show reasoning for strategic decisions — calculations, not opinion
 8. Workspace: {FORGE_WS}/ — save all outputs there, tell owner exact path
 9. Total memories: {{mem_count():,}}
@@ -447,19 +473,6 @@ class ForgeAI:
             model    = model    or primary.get("model", "claude-sonnet-4-6")
 
         key = cfg.get("providers", {}).get(provider, {}).get("api_key", "")
-
-        # OpenAI OAuth: load access_token from token file if api_key not set
-        if provider == "openai" and not key:
-            token_file = cfg.get("providers", {}).get("openai", {}).get("token_file", "")
-            if token_file:
-                try:
-                    from pathlib import Path as _TFP
-                    tok = json.loads(_TFP(token_file).read_text())
-                    key = tok.get("access_token", "")
-                    if key:
-                        log.info("OpenAI: using OAuth access token from token file")
-                except Exception as _e:
-                    log.warning(f"OpenAI token file load failed: {_e}")
 
         # Smart routing — check model stack
         active_model_key = cfg.get("active_model", "claude-sonnet-4-6")
@@ -630,13 +643,6 @@ class ForgeAI:
     @classmethod
     def _openai(cls, system, messages, model, key):
         if not key: return "OpenAI key not configured. Run: forge setup"
-        # OAuth tokens use the Responses API (same as Codex CLI)
-        # API keys use the standard Chat Completions API
-        cfg = load_cfg()
-        token_file = cfg.get("providers", {}).get("openai", {}).get("token_file", "")
-        is_oauth = bool(token_file and (Path(token_file).exists() if token_file else False))
-        if is_oauth:
-            return cls._openai_responses(system, messages, model, key)
         try:
             import openai
             c = openai.OpenAI(api_key=key)
@@ -644,105 +650,6 @@ class ForgeAI:
             r = c.chat.completions.create(model=model, messages=msgs, max_tokens=8096)
             return r.choices[0].message.content
         except Exception as e: return f"OpenAI error: {e}"
-
-    @classmethod
-    def _openai_responses(cls, system, messages, model, token):
-        """Call ChatGPT backend using OAuth Bearer token — mirrors Codex CLI architecture.
-        Endpoint: chatgpt.com/backend-api/codex/responses (NOT api.openai.com)
-        """
-        import urllib.request, urllib.error
-
-        # Load account_id from token file (required header)
-        cfg = load_cfg()
-        account_id = cfg.get("providers", {}).get("openai", {}).get("account_id", "")
-        if not account_id:
-            token_file = cfg.get("providers", {}).get("openai", {}).get("token_file", "")
-            if token_file:
-                try:
-                    tok = json.loads(Path(token_file).read_text())
-                    account_id = tok.get("account_id", "")
-                except Exception:
-                    pass
-
-        try:
-            # Build input array (Codex CLI format — not messages[])
-            # user messages → input_text, assistant messages → output_text
-            input_items = []
-            for m in messages[-10:]:
-                role = m.get("role", "user")
-                content = m.get("content", "")
-                content_type = "output_text" if role == "assistant" else "input_text"
-                input_items.append({
-                    "type": "message",
-                    "role": role,
-                    "content": [{"type": content_type, "text": content}]
-                })
-
-            payload = json.dumps({
-                "model":        model,
-                "store":        False,
-                "stream":       True,       # ChatGPT backend requires stream=true
-                "instructions": system,
-                "input":        input_items,
-                "reasoning":    {"effort": "medium", "summary": "auto"},
-            }).encode()
-
-            headers = {
-                "Authorization":    f"Bearer {token}",
-                "Content-Type":     "application/json",
-                "OpenAI-Beta":      "responses=experimental",
-                "originator":       "codex_cli_rs",
-                "accept":           "text/event-stream",
-            }
-            if account_id:
-                headers["chatgpt-account-id"] = account_id
-
-            req = urllib.request.Request(
-                "https://chatgpt.com/backend-api/codex/responses",
-                data=payload,
-                headers=headers
-            )
-
-            # Parse SSE stream — collect text deltas, watch for response.done
-            collected_text = []
-            with urllib.request.urlopen(req, timeout=90) as r:
-                for raw_line in r:
-                    line = raw_line.decode("utf-8", errors="replace").strip()
-                    if not line.startswith("data:"):
-                        continue
-                    data_str = line[5:].strip()
-                    if data_str in ("[DONE]", ""):
-                        continue
-                    try:
-                        ev = json.loads(data_str)
-                    except Exception:
-                        continue
-                    ev_type = ev.get("type", "")
-                    log.info(f"ChatGPT SSE event: {ev_type}")
-                    if ev_type == "response.output_text.delta":
-                        collected_text.append(ev.get("delta", ""))
-                    elif "delta" in ev and isinstance(ev.get("delta"), str):
-                        # Catch any delta variant
-                        collected_text.append(ev["delta"])
-                    elif ev_type in ("response.done", "response.completed"):
-                        resp = ev.get("response", {})
-                        for item in resp.get("output", []):
-                            if item.get("type") == "message":
-                                for part in item.get("content", []):
-                                    if part.get("type") in ("output_text", "text"):
-                                        return part.get("text", "")
-                        if collected_text:
-                            return "".join(collected_text)
-
-            result = "".join(collected_text)
-            log.info(f"ChatGPT SSE done — collected {len(result)} chars")
-            return result if result else "No response received"
-
-        except urllib.error.HTTPError as e:
-            body = e.read().decode()
-            return f"ChatGPT API error {e.code}: {body}"
-        except Exception as e:
-            return f"OpenAI OAuth error: {e}"
 
     @staticmethod
     def _cursor_call(system, messages, model_key, cfg=None):
@@ -1686,6 +1593,266 @@ def _notify(text: str, cfg: dict):
     except Exception as e: log.error(f"Notify: {e}")
 
 
+# ── TELEGRAM INBOUND — POLL LOOP ──────────────────────────────────────────────
+
+def _tg_reply(token: str, chat_id: str, text: str):
+    """Send a reply to a Telegram chat_id, splitting at 4000 chars."""
+    import urllib.request
+    try:
+        chunks = [text[i:i+4000] for i in range(0, max(len(text), 1), 4000)]
+        for chunk in chunks:
+            payload = json.dumps({
+                "chat_id": chat_id, "text": chunk, "parse_mode": "Markdown"
+            }).encode()
+            req = urllib.request.Request(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                data=payload, headers={"Content-Type": "application/json"})
+            urllib.request.urlopen(req, timeout=10)
+    except Exception as e:
+        log.error(f"TG reply error: {e}")
+
+
+def _tg_download(token: str, file_id: str) -> bytes:
+    """Resolve a Telegram file_id and download its bytes."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+            f"https://api.telegram.org/bot{token}/getFile?file_id={file_id}", timeout=10
+        ) as r:
+            meta = json.loads(r.read().decode())
+        file_path = meta["result"]["file_path"]
+        with urllib.request.urlopen(
+            f"https://api.telegram.org/file/bot{token}/{file_path}", timeout=30
+        ) as r:
+            return r.read()
+    except Exception as e:
+        log.error(f"TG download error: {e}")
+        return b""
+
+
+def _tg_vision(image_bytes: bytes, caption: str, cfg: dict) -> str:
+    """Send image bytes to Anthropic vision and return the response.
+    Uses ForgeAI.call() so both API key and OAuth paths are handled uniformly."""
+    import base64
+    try:
+        api_key = (cfg.get("providers", {}).get("anthropic", {}).get("api_key", "")
+                   or os.environ.get("ANTHROPIC_API_KEY", ""))
+        oauth   = (cfg.get("providers", {}).get("anthropic", {}).get("oauth_token", "")
+                   or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", ""))
+        if not api_key and not oauth:
+            return "Image received — configure an Anthropic API key to enable vision analysis."
+
+        # Detect media type
+        media_type = "image/jpeg"
+        if image_bytes[:8] == b'\x89PNG\r\n\x1a\n':
+            media_type = "image/png"
+        elif image_bytes[:4] in (b'GIF8',):
+            media_type = "image/gif"
+        elif len(image_bytes) > 12 and image_bytes[8:12] == b'WEBP':
+            media_type = "image/webp"
+        b64 = base64.standard_b64encode(image_bytes).decode()
+
+        prompt = caption.strip() if caption.strip() else "Describe this image in detail and note anything important."
+        system = build_system_prompt(cfg=cfg)
+
+        # API key path — use SDK directly with multimodal message
+        if api_key:
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            model  = (cfg.get("models", {}).get("primary") or {}).get("model", "claude-sonnet-4-6")
+            resp = client.messages.create(
+                model=model, max_tokens=1024, system=system,
+                messages=[{"role": "user", "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
+                    {"type": "text",  "text": prompt}
+                ]}]
+            )
+            return resp.content[0].text
+
+        # OAuth path — try Bearer token against REST API
+        import urllib.request as _ur
+        headers = {
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01",
+            "Authorization": f"Bearer {oauth}"
+        }
+        model = (cfg.get("models", {}).get("primary") or {}).get("model", "claude-sonnet-4-6")
+        payload = json.dumps({
+            "model": model, "max_tokens": 1024, "system": system,
+            "messages": [{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
+                {"type": "text", "text": prompt}
+            ]}]
+        }).encode()
+        req = _ur.Request("https://api.anthropic.com/v1/messages",
+                          data=payload, headers=headers, method="POST")
+        try:
+            with _ur.urlopen(req, timeout=60) as r:
+                resp = json.loads(r.read().decode())
+                return resp["content"][0]["text"]
+        except Exception as auth_err:
+            if "401" in str(auth_err):
+                return "Vision requires an Anthropic API key — add one to forge.json under providers.anthropic.api_key."
+            raise
+    except Exception as e:
+        log.error(f"Vision error: {e}")
+        return f"Could not analyse image: {e}"
+
+
+def _tg_transcribe_local(audio_path: str) -> str:
+    """Transcribe audio using local faster-whisper (medium model). Zero cost, no API key needed."""
+    try:
+        model = _get_whisper_model()
+        if model is None:
+            log.info("faster-whisper not installed — falling back to OpenAI API")
+            return ""
+        segments, _ = model.transcribe(audio_path)
+        return " ".join(seg.text for seg in segments).strip()
+    except Exception as e:
+        log.error(f"faster-whisper error: {e}")
+        return ""
+
+
+def _tg_transcribe(audio_bytes: bytes, cfg: dict) -> str:
+    """Transcribe voice/audio bytes. Tries local faster-whisper first, falls back to OpenAI API."""
+    import tempfile, os
+    tmp = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
+            f.write(audio_bytes)
+            tmp = f.name
+
+        # Try local faster-whisper first (free, no API key)
+        transcript = _tg_transcribe_local(tmp)
+        if transcript:
+            return transcript
+
+        # Fall back to OpenAI Whisper API
+        openai_key = (
+            cfg.get("providers", {}).get("openai", {}).get("api_key", "")
+            or cfg.get("integrations", {}).get("openai_key", "")
+        )
+        if not openai_key:
+            return ""
+        result = subprocess.run([
+            "curl", "-s", "-X", "POST",
+            "https://api.openai.com/v1/audio/transcriptions",
+            "-H", f"Authorization: Bearer {openai_key}",
+            "-F", "model=whisper-1",
+            "-F", f"file=@{tmp};type=audio/ogg"
+        ], capture_output=True, text=True, timeout=30)
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            return data.get("text", "").strip()
+    except Exception as e:
+        log.error(f"Transcription error: {e}")
+    finally:
+        if tmp and os.path.exists(tmp):
+            try: os.unlink(tmp)
+            except: pass
+    return ""
+
+
+def _tg_video(video_bytes: bytes, caption: str, cfg: dict) -> str:
+    """Process a video: extract audio → transcribe locally, extract 4 frames → Claude vision → combined response."""
+    import tempfile, os, base64, shutil, urllib.request
+
+    tmp_video = tmp_audio = None
+    frames_dir = None
+
+    try:
+        # Write video to temp file
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+            f.write(video_bytes)
+            tmp_video = f.name
+
+        # Extract audio track
+        tmp_audio = tmp_video.replace(".mp4", "_audio.ogg")
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", tmp_video, "-vn", "-acodec", "libopus", tmp_audio],
+            capture_output=True, timeout=60
+        )
+
+        # Transcribe audio
+        transcript = ""
+        if os.path.exists(tmp_audio) and os.path.getsize(tmp_audio) > 0:
+            transcript = _tg_transcribe_local(tmp_audio)
+            if not transcript:
+                with open(tmp_audio, "rb") as af:
+                    transcript = _tg_transcribe(af.read(), cfg)
+
+        # Extract 4 key frames
+        frames_dir = tempfile.mkdtemp()
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", tmp_video,
+             "-vf", "select='not(mod(n\\,floor(nb_frames/4)))',scale=640:-1",
+             "-vsync", "vfr", "-frames:v", "4",
+             f"{frames_dir}/frame%02d.jpg"],
+            capture_output=True, timeout=60
+        )
+        frame_files = sorted(Path(frames_dir).glob("frame*.jpg"))
+
+        # Send frames to Claude vision
+        api_key = (cfg.get("providers", {}).get("anthropic", {}).get("api_key", "")
+                   or os.environ.get("ANTHROPIC_API_KEY", ""))
+        oauth_token = (cfg.get("providers", {}).get("anthropic", {}).get("oauth_token", "")
+                       or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", ""))
+
+        vision_result = ""
+        if frame_files and (api_key or oauth_token):
+            content = []
+            for fp in frame_files[:4]:
+                b64 = base64.standard_b64encode(fp.read_bytes()).decode()
+                content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}})
+
+            prompt = caption.strip() if caption.strip() else "Analyse these 4 video frames and describe what's happening."
+            if transcript:
+                prompt += f"\n\nAudio transcript: {transcript}"
+            content.append({"type": "text", "text": prompt})
+
+            headers = {"Content-Type": "application/json", "anthropic-version": "2023-06-01"}
+            if api_key:
+                headers["x-api-key"] = api_key
+            else:
+                headers["Authorization"] = f"Bearer {oauth_token}"
+
+            payload = json.dumps({
+                "model": "claude-sonnet-4-6",
+                "max_tokens": 1024,
+                "messages": [{"role": "user", "content": content}]
+            }).encode()
+
+            req = urllib.request.Request(
+                "https://api.anthropic.com/v1/messages",
+                data=payload, headers=headers, method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=60) as r:
+                resp = json.loads(r.read().decode())
+                vision_result = resp["content"][0]["text"]
+
+        # Build combined response
+        parts = []
+        if transcript:
+            parts.append(f"*Audio:* {transcript}")
+        if vision_result:
+            parts.append(f"*Vision:* {vision_result}")
+
+        return "\n\n".join(parts) if parts else "Could not extract content from video."
+
+    except Exception as e:
+        log.error(f"Video processing error: {e}")
+        return f"Video processing failed: {e}"
+    finally:
+        for path in [tmp_video, tmp_audio]:
+            if path and os.path.exists(path):
+                try: os.unlink(path)
+                except: pass
+        if frames_dir and os.path.exists(frames_dir):
+            try: shutil.rmtree(frames_dir)
+            except: pass
+
+
+
 def _spawn_claude_fresh(prompt: str, workdir: str = None, label: str = "") -> str:
     """
     Spawn a fresh claude CLI session directly — no session resume.
@@ -1893,6 +2060,51 @@ class Handler(BaseHTTPRequestHandler):
                     safe["channels"][ch]["bot_token"] = "••••••"
             self.out(safe); return
 
+        if p == "/keys":
+            cfg = load_cfg()
+            self.out(cfg.get("integrations", {})); return
+
+        if p == "/alarms":
+            c = _db()
+            rows = c.execute("SELECT * FROM alarms ORDER BY id DESC").fetchall()
+            c.close()
+            self.out([dict(r) for r in rows]); return
+
+        if p == "/gsd":
+            gsd_file = FORGE_CFG / ".gsd_state.json"
+            if gsd_file.exists():
+                state = json.loads(gsd_file.read_text())
+            else:
+                state = {"active": False}
+            self.out(state); return
+
+        if p == "/skills/get":
+            stem = parse_qs(urlparse(self.path).query).get("name", [""])[0]
+            stem = re.sub(r"[^a-zA-Z0-9_]", "_", stem.lower())
+            skill_file = SKILLS_DIR / f"{stem}.py"
+            if skill_file.exists():
+                self.out({"code": skill_file.read_text()}); return
+            self.out({"error": "skill not found"}, 404); return
+
+        if p == "/skills/list":
+            SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+            skills = []
+            for f in sorted(SKILLS_DIR.glob("*.py")):
+                if f.name.startswith("_"): continue
+                try:
+                    text      = f.read_text()
+                    lines     = text.split("\n")
+                    name_line = next((l for l in lines if l.startswith("Skill:")), "")
+                    name      = name_line.replace("Skill:", "").strip() or f.stem
+                    desc      = next((l.strip().strip('"').strip("'") for l in lines[1:8]
+                                      if l.strip() and not l.strip().startswith(
+                                          ('"""', "'''", "#", "Skill:", "Usage:", "Requires:", "Setup:")
+                                      )), f.stem)
+                except:
+                    name, desc, text = f.stem, "", ""
+                skills.append({"name": name, "file": f.name, "stem": f.stem, "description": desc, "code": text})
+            self.out(skills); return
+
         self.out({"error":"not found"},404)
 
     def do_POST(self):
@@ -1906,9 +2118,51 @@ class Handler(BaseHTTPRequestHandler):
             msg = b.get("message","").strip()
             ag  = b.get("agent","FORGE")
             if not msg: self.out({"error":"empty"},400); return
-            resp = process_chat(msg, ag)
-            self.out({"response":resp,"agent":ag,
-                      "god_mode":god_mode_active(),"name":get_agent_name()}); return
+            # Auto-log task to forge.db
+            _chat_task_id = None
+            try:
+                _chat_title = (msg[:57] + "...") if len(msg) > 60 else msg
+                _c = _db()
+                try:
+                    _cur = _c.execute(
+                        "INSERT INTO tasks (title, agent, status, priority, assignee, progress, created) VALUES (?,?,?,?,?,0,?)",
+                        (_chat_title, ag, "in_progress", "P3 Normal", ag, datetime.now().isoformat())
+                    )
+                    _chat_task_id = _cur.lastrowid
+                    _c.commit()
+                finally:
+                    _c.close()
+            except Exception:
+                pass  # never block chat on task logging failure
+            try:
+                resp = process_chat(msg, ag)
+                self.out({"response":resp,"agent":ag,
+                          "god_mode":god_mode_active(),"name":get_agent_name()})
+                # Complete task in forge.db
+                if _chat_task_id:
+                    try:
+                        _result_summary = str(resp)[:200] if resp else "Completed"
+                        _c2 = _db()
+                        _c2.execute(
+                            "UPDATE tasks SET status='completed', result=?, progress=100, completed=? WHERE id=?",
+                            (_result_summary, datetime.now().isoformat(), _chat_task_id)
+                        )
+                        _c2.commit(); _c2.close()
+                    except Exception:
+                        pass
+                return
+            except Exception as e:
+                if _chat_task_id:
+                    try:
+                        _c3 = _db()
+                        _c3.execute(
+                            "UPDATE tasks SET status='failed', result=?, completed=? WHERE id=?",
+                            (str(e)[:200], datetime.now().isoformat(), _chat_task_id)
+                        )
+                        _c3.commit(); _c3.close()
+                    except Exception:
+                        pass
+                self.out({"error": str(e)}, 500); return
 
         if p == "/spawn":
             name  = b.get("name","").strip().upper()
@@ -1921,7 +2175,23 @@ class Handler(BaseHTTPRequestHandler):
                                  [{"role":"user","content":f"Write 150-word system prompt for {name}, role: {role}"}],
                                  cfg=cfg)
             save_agent(name, role, "anthropic", model, gen)
-            self.out({"success":True,"name":name,"role":role}); return
+            # Auto-create filesystem workspace for new agent
+            agent_dir = FORGE_CFG / "agents" / name
+            agent_dir.mkdir(parents=True, exist_ok=True)
+            (agent_dir / "subagents").mkdir(exist_ok=True)
+            for fname, txt in [
+                ("soul.md",      f"# {name} — Soul\nYou are {name}, {role}. Part of Forge CORTEX OS.\nFortune 500 standard. Every output exceeds expectations.\nNever touch .env files.\n"),
+                ("identity.md",  f"# {name} — Identity\nRole: {role}\nAgent: {name}\n"),
+                ("character.md", f"# {name} — Character\nDirect. Strategic. Elite.\n"),
+                ("tools.md",     f"# {name} — Tools\nFull Forge tool suite as scoped by CORTEX.\n"),
+                ("memory.md",    f"# {name} — Memory\nPart of Forge CORTEX OS. Serving Ash Chalana.\n"),
+                ("god_mode.md",  f"# {name} — God Mode\nFull domain autonomy.\nHard limit: never touch .env files.\n"),
+                ("protocols.md", f"# {name} — Protocols\n1. Receive brief\n2. Analyse\n3. Execute\n4. Return structured result\n"),
+            ]:
+                p_file = agent_dir / fname
+                if not p_file.exists():
+                    p_file.write_text(txt)
+            self.out({"success":True,"name":name,"role":role,"workspace":str(agent_dir)}); return
 
         if p == "/parallel":
             self.out({"results": run_parallel(b.get("tasks",{}))}); return
@@ -1991,6 +2261,42 @@ class Handler(BaseHTTPRequestHandler):
             result = vision_describe(file_path, question, load_cfg())
             self.out({"result":result}); return
 
+        # ── Media processing endpoints (called by gateway.js) ─────────────
+        if p == "/media/transcribe":
+            import base64
+            data_b64 = b.get("data","")
+            if not data_b64: self.out({"error":"data required"},400); return
+            try:
+                audio_bytes = base64.b64decode(data_b64)
+            except Exception as e:
+                self.out({"error":f"base64 decode failed: {e}"},400); return
+            transcript = _tg_transcribe(audio_bytes, load_cfg())
+            self.out({"transcript": transcript or ""}); return
+
+        if p == "/media/vision":
+            import base64
+            data_b64 = b.get("data","")
+            caption  = b.get("caption","")
+            if not data_b64: self.out({"error":"data required"},400); return
+            try:
+                image_bytes = base64.b64decode(data_b64)
+            except Exception as e:
+                self.out({"error":f"base64 decode failed: {e}"},400); return
+            result = _tg_vision(image_bytes, caption, load_cfg())
+            self.out({"result": result}); return
+
+        if p == "/media/video":
+            import base64
+            data_b64 = b.get("data","")
+            caption  = b.get("caption","")
+            if not data_b64: self.out({"error":"data required"},400); return
+            try:
+                video_bytes = base64.b64decode(data_b64)
+            except Exception as e:
+                self.out({"error":f"base64 decode failed: {e}"},400); return
+            result = _tg_video(video_bytes, caption, load_cfg())
+            self.out({"result": result}); return
+
         if p == "/browser":
             script = b.get("script","")
             timeout = int(b.get("timeout",120))
@@ -2039,7 +2345,264 @@ class Handler(BaseHTTPRequestHandler):
             delete_task_db(int(task_id))
             self.out({"success":True}); return
 
+        # ── API Key Vault ──────────────────────────────────────
+        if p == "/keys":
+            cfg = load_cfg()
+            integrations = b if isinstance(b, dict) else {}
+            cfg["integrations"] = integrations
+            save_cfg(cfg)
+            self.out({"success": True}); return
+
+        # ── Alarms ────────────────────────────────────────────
+        if p == "/alarms":
+            alarm_id = b.get("id")
+            name     = b.get("name", "Untitled Alarm")
+            cron     = b.get("cron", "0 9 * * *")
+            task     = b.get("task", "")
+            channel  = b.get("channel", "telegram")
+            enabled  = 1 if b.get("enabled", True) else 0
+            now_ts   = datetime.now().isoformat()
+            c = _db()
+            if alarm_id:
+                c.execute(
+                    "UPDATE alarms SET name=?, cron=?, task=?, channel=?, enabled=? WHERE id=?",
+                    (name, cron, task, channel, enabled, int(alarm_id))
+                )
+                c.commit(); c.close()
+                _reschedule_alarms()
+                self.out({"success": True, "id": int(alarm_id)}); return
+            else:
+                cur = c.execute(
+                    "INSERT INTO alarms(name,cron,task,channel,enabled,created) VALUES(?,?,?,?,?,?)",
+                    (name, cron, task, channel, enabled, now_ts)
+                )
+                new_id = cur.lastrowid
+                c.commit(); c.close()
+                _reschedule_alarms()
+                self.out({"success": True, "id": new_id}); return
+
+        if p == "/alarms/toggle":
+            alarm_id = b.get("id")
+            enabled  = 1 if b.get("enabled", True) else 0
+            if not alarm_id: self.out({"error":"id required"},400); return
+            c = _db()
+            c.execute("UPDATE alarms SET enabled=? WHERE id=?", (enabled, int(alarm_id)))
+            c.commit(); c.close()
+            _reschedule_alarms()
+            self.out({"success": True}); return
+
+        if p == "/alarms/delete":
+            alarm_id = b.get("id")
+            if not alarm_id: self.out({"error":"id required"},400); return
+            c = _db()
+            c.execute("DELETE FROM alarms WHERE id=?", (int(alarm_id),))
+            c.commit(); c.close()
+            _reschedule_alarms()
+            self.out({"success": True}); return
+
+        if p == "/skills/save":
+            name = re.sub(r"[^a-zA-Z0-9_]", "_", b.get("name", "skill").lower())
+            code = b.get("code", "")
+            if not code: self.out({"error": "code required"}, 400); return
+            SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+            (SKILLS_DIR / f"{name}.py").write_text(code)
+            self.out({"success": True, "file": f"{name}.py"}); return
+
+        if p == "/skills/delete":
+            name = re.sub(r"[^a-zA-Z0-9_]", "_", b.get("name", "").lower())
+            if not name: self.out({"error": "name required"}, 400); return
+            skill_file = SKILLS_DIR / f"{name}.py"
+            if skill_file.exists():
+                skill_file.unlink()
+                self.out({"success": True}); return
+            self.out({"error": "skill not found"}, 404); return
+
+        # ── Agent activity logging (called by gateway.js orchestrator) ──────
+        if p == "/memory/log":
+            agent   = b.get("agent", "FORGE").upper()
+            role    = b.get("role", "assistant")
+            content = b.get("content", "").strip()
+            if not content: self.out({"error": "content required"}, 400); return
+            c = _db()
+            c.execute("INSERT INTO memory(agent,role,content,timestamp) VALUES(?,?,?,?)",
+                      (agent, role, content, datetime.now().isoformat()))
+            c.commit(); c.close()
+            self.out({"success": True}); return
+
+        if p == "/agents/activity":
+            name = b.get("name", "").upper()
+            if not name: self.out({"error": "name required"}, 400); return
+            c = _db()
+            c.execute("UPDATE agents SET tasks_done = COALESCE(tasks_done,0) + 1 WHERE name=?", (name,))
+            c.commit(); c.close()
+            self.out({"success": True}); return
+
+        # ── Agent workspace creation (creates ~/.forge/agents/[name]/ files) ─
+        if p == "/agents/workspace":
+            name = b.get("name", "").strip().upper()
+            role = b.get("role", "").strip()
+            if not name: self.out({"error": "name required"}, 400); return
+            agent_dir = FORGE_CFG / "agents" / name
+            agent_dir.mkdir(parents=True, exist_ok=True)
+            (agent_dir / "subagents").mkdir(exist_ok=True)
+            soul_content = f"""# {name} — Soul
+## Core Identity
+You are {name}, {role}.
+You are part of the Forge Multi-Agent OS — an elite AI operating system built for Ash.
+You operate at Fortune 500 standard. Every output exceeds expectations.
+
+## Non-Negotiables
+- Never view, edit, or delete .env files
+- Never expose sensitive credentials or personal data
+- Always deliver structured, professional output
+- Quality gate: would this pass a Fortune 500 board review?
+
+## Mission
+Serve Ash with excellence. Think strategically. Execute decisively.
+"""
+            identity_content = f"""# {name} — Identity
+**Role:** {role}
+**Agent:** {name}
+**Part of:** Forge CORTEX Multi-Agent OS
+
+## Jurisdiction
+Handle all tasks within your domain with full autonomy.
+Collaborate with other agents when scope overlaps.
+Escalate to CORTEX only when cross-domain synthesis is required.
+
+## Collaboration Protocol
+- Receive scoped brief from CORTEX
+- Execute with full domain expertise
+- Return structured result for quality gate
+"""
+            files = {
+                "soul.md": soul_content,
+                "identity.md": identity_content,
+                "character.md": f"# {name} — Character\nDirect. Strategic. Elite.\nCommunicates with precision. No filler. No hedging.\n",
+                "tools.md": f"# {name} — Tools\nFull access to Forge tool suite as scoped by CORTEX.\n",
+                "memory.md": f"# {name} — Memory\n## Active Context\nPart of Forge CORTEX OS. Serving Ash Chalana.\n",
+                "god_mode.md": f"# {name} — God Mode\nFull autonomy within domain scope.\nHard limit: never touch .env files. Never expose credentials.\n",
+                "protocols.md": f"# {name} — Protocols\n1. Receive task brief\n2. Analyse requirements\n3. Execute with full capability\n4. Return structured result\n5. Flag blockers immediately\n",
+            }
+            for fname, content_txt in files.items():
+                fpath = agent_dir / fname
+                if not fpath.exists():
+                    fpath.write_text(content_txt)
+            self.out({"success": True, "path": str(agent_dir), "files": list(files.keys())}); return
+
         self.out({"error":"not found"},404)
+
+
+# ── ALARM ENGINE ──────────────────────────────────────────
+def _fire_alarm(alarm_id: int):
+    """Execute an alarm: run the task via skill or AI and deliver output to the chosen channel."""
+    try:
+        c = _db()
+        row = c.execute("SELECT * FROM alarms WHERE id=?", (alarm_id,)).fetchone()
+        c.close()
+        if not row: return
+        alarm = dict(row)
+        if not alarm.get("enabled"): return
+
+        cfg  = load_cfg()
+        task = alarm.get("task", "").strip()
+        log.info(f"Alarm firing: [{alarm['name']}] → {task[:80]}")
+
+        # Direct skill dispatch: SKILL:name:arg1=val1,arg2=val2
+        if task.upper().startswith("SKILL:"):
+            parts    = task[6:].split(":", 1)
+            skill_nm = parts[0].strip()
+            kw_str   = parts[1].strip() if len(parts) > 1 else ""
+            kwargs   = {}
+            for item in kw_str.split(","):
+                if "=" in item:
+                    k, v = item.split("=", 1)
+                    kwargs[k.strip()] = v.strip()
+            result = call_skill(skill_nm, **kwargs)
+        else:
+            # AI execution — include available skills in context
+            skills_info = _skills_summary()
+            prompt = (
+                f"You are Forge, the autonomous AI assistant. An alarm just fired: '{alarm['name']}'.\n"
+                f"Your task: {task}\n\n"
+                f"Available skills you can call (use call_skill in your reasoning):\n{skills_info}\n\n"
+                "Execute this task fully. Be concise — Telegram-friendly output "
+                "(no markdown ## headers, use *bold*, bullet points OK, max ~600 words)."
+            )
+            result = ForgeAI.call(prompt, cfg)
+
+        result = (result or "Task completed — no output returned.")[:3800]
+
+        # Deliver result
+        channel = alarm.get("channel", "telegram")
+        header  = f"⏰ *{alarm['name']}*\n\n"
+        if channel == "telegram":
+            _notify(header + result, cfg)
+        elif channel == "slack":
+            slack_ch = cfg.get("integrations", {}).get("slack", {}).get("default_channel", "#general")
+            call_skill("slack_send", message=header + result, channel=slack_ch)
+
+        # Update last_run
+        c = _db()
+        c.execute("UPDATE alarms SET last_run=? WHERE id=?", (datetime.now().isoformat(), alarm_id))
+        c.commit(); c.close()
+
+        log.info(f"Alarm [{alarm['name']}] completed.")
+    except Exception as e:
+        log.error(f"Alarm fire error (id={alarm_id}): {e}")
+
+
+def _skills_summary() -> str:
+    """Return a brief list of available skills for AI context."""
+    SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+    skills = []
+    for f in SKILLS_DIR.glob("*.py"):
+        if f.name.startswith("_") or f.name == "gmail_auth.py": continue
+        try:
+            first_lines = f.read_text().split("\n")[:5]
+            desc = next((l.strip().lstrip("#").strip() for l in first_lines if l.strip() and not l.startswith('"""')), f.stem)
+        except:
+            desc = f.stem
+        skills.append(f"  • {f.stem}: {desc}")
+    return "\n".join(skills) if skills else "  (no skills installed)"
+
+
+# Global scheduler reference (set in main)
+_scheduler = None
+
+def _reschedule_alarms():
+    """Re-sync all enabled alarms from DB into APScheduler."""
+    global _scheduler
+    if not HAS_APSCHEDULER or _scheduler is None: return
+    try:
+        # Remove all existing alarm jobs
+        for job in _scheduler.get_jobs():
+            if job.id.startswith("alarm_"):
+                job.remove()
+        # Add enabled alarms
+        c = _db()
+        rows = c.execute("SELECT * FROM alarms WHERE enabled=1").fetchall()
+        c.close()
+        for row in rows:
+            a = dict(row)
+            parts = (a["cron"] or "0 9 * * *").split()
+            if len(parts) != 5: continue
+            min_, hr_, dom_, mon_, dow_ = parts
+            try:
+                _scheduler.add_job(
+                    _fire_alarm,
+                    "cron",
+                    id=f"alarm_{a['id']}",
+                    args=[a["id"]],
+                    minute=min_, hour=hr_,
+                    day=dom_, month=mon_, day_of_week=dow_,
+                    replace_existing=True,
+                )
+                log.info(f"Scheduled alarm [{a['name']}] → cron: {a['cron']}")
+            except Exception as e:
+                log.warning(f"Could not schedule alarm {a['id']}: {e}")
+    except Exception as e:
+        log.error(f"_reschedule_alarms: {e}")
 
 
 # ── BACKGROUND LOOPS ──────────────────────────────────────
@@ -2061,74 +2624,83 @@ def _nightly_loop():
             except Exception as e: log.error(f"Nightly: {e}")
 
 
-# ── TELEGRAM POLLING LOOP ─────────────────────────────────
-def _telegram_poll_loop():
-    """Long-poll Telegram getUpdates and route messages through process_chat."""
-    import urllib.request, urllib.error
-    offset = 0
-    log.info("Telegram polling loop started")
-    while True:
-        try:
-            cfg   = load_cfg()
-            tg    = cfg.get("channels", {}).get("telegram", {})
-            token = tg.get("bot_token", "")
-            uid   = str(tg.get("user_id", ""))
-            if not token:
-                time.sleep(30)
-                continue
-
-            url  = f"https://api.telegram.org/bot{token}/getUpdates?timeout=30&offset={offset}"
-            req  = urllib.request.Request(url)
-            with urllib.request.urlopen(req, timeout=35) as r:
-                data = json.loads(r.read())
-
-            if not data.get("ok"):
-                time.sleep(5)
-                continue
-
-            for update in data.get("result", []):
-                offset = update["update_id"] + 1
-                msg    = update.get("message", {})
-                text   = (msg.get("text") or "").strip()
-                from_id = str(msg.get("from", {}).get("id", ""))
-                if not text:
-                    continue
-                # Only respond to authorised user (if configured)
-                if uid and from_id != uid:
-                    log.warning(f"Telegram: ignored message from unknown user {from_id}")
-                    continue
-
-                log.info(f"Telegram ← {text[:80]}")
-                try:
-                    reply = process_chat(text, "FORGE")
-                except Exception as e:
-                    reply = f"Error processing message: {e}"
-
-                # Send reply — no parse_mode to avoid Markdown escaping errors
-                try:
-                    payload = json.dumps({
-                        "chat_id": from_id,
-                        "text":    reply[:4000],
-                    }).encode()
-                    resp_req = urllib.request.Request(
-                        f"https://api.telegram.org/bot{token}/sendMessage",
-                        data=payload,
-                        headers={"Content-Type": "application/json"}
-                    )
-                    urllib.request.urlopen(resp_req, timeout=10)
-                    log.info(f"Telegram → replied ({len(reply)} chars)")
-                except Exception as e:
-                    log.error(f"Telegram send: {e}")
-
-        except urllib.error.URLError as e:
-            log.warning(f"Telegram poll network error: {e} — retrying in 10s")
-            time.sleep(10)
-        except Exception as e:
-            log.error(f"Telegram poll error: {e}")
-            time.sleep(5)
-
-
 # ── SCHEDULED JOBS ────────────────────────────────────────
+
+def _sched_seo():
+    """11PM nightly — SEO audit and improvements for Synfiction."""
+    cfg = load_cfg()
+    log.info("Scheduled: SEO run starting")
+    _notify("Forge: Starting nightly SEO audit on Synfiction...", cfg)
+    date_str = datetime.now().strftime("%Y%m%d")
+    prompt = (
+        "You are Forge, autonomous AI assistant for Synfiction.ai — an AI-powered fiction writing platform. "
+        "Perform a technical SEO audit of the Synfiction landing page and blog. "
+        "Check: meta tags, Open Graph tags, structured data/schema, page titles, descriptions, "
+        "canonical URLs, image alt text, heading hierarchy (H1/H2/H3), and internal linking. "
+        "Identify the top 3 quick wins. Implement any that are safe, isolated file edits. "
+        f"Save a detailed report to ~/Forge/research/seo_audit_{date_str}.md with findings and actions taken."
+    )
+    result = _spawn_claude_fresh(prompt, workdir=str(SYNFICTION_DIR), label="seo")
+    summary = (result or "No output")[:400]
+    save_learning("scheduled_seo", f"SEO run {datetime.now().strftime('%Y-%m-%d')}: {summary[:150]}", "scheduler")
+    _notify(f"*Forge SEO Audit done*\n\n{summary}", cfg)
+    log.info(f"Scheduled SEO done: {summary[:80]}")
+
+
+def _sched_competitive_research():
+    """12AM nightly — competitive landscape research for Synfiction."""
+    cfg = load_cfg()
+    log.info("Scheduled: competitive research starting")
+    _notify("Forge: Starting midnight competitive research...", cfg)
+    date_str = datetime.now().strftime("%Y%m%d")
+    prompt = (
+        "You are Forge, autonomous AI for Synfiction.ai — an AI-powered fiction writing platform. "
+        "Research the current competitive landscape: "
+        "1. Check Sudowrite, NovelAI, Jasper, Copy.ai, Notion AI for new features or pricing changes. "
+        "2. Identify any new AI writing or storytelling tools launched recently. "
+        "3. Note trends in user sentiment from public forums (Reddit, Twitter/X, HN, Product Hunt). "
+        "4. Flag 2-3 concrete opportunities Synfiction should act on within 30 days. "
+        f"Save a full report to ~/Forge/research/competitive_{date_str}.md."
+    )
+    result = _spawn_claude_fresh(prompt, workdir=str(FORGE_WS), label="competitive")
+    summary = (result or "No output")[:400]
+    save_learning("competitive_intel", f"Research {datetime.now().strftime('%Y-%m-%d')}: {summary[:150]}", "scheduler")
+    _notify(f"*Forge Competitive Research done*\n\n{summary}", cfg)
+    log.info(f"Scheduled competitive done: {summary[:80]}")
+
+
+def _sched_daily_brief():
+    """9AM daily — send task status and priorities brief to Telegram."""
+    cfg = load_cfg()
+    log.info("Scheduled: daily brief")
+    try:
+        c = _db()
+        backlog  = c.execute("SELECT COUNT(*) FROM tasks WHERE status NOT IN ('completed')").fetchone()[0]
+        in_prog  = c.execute("SELECT COUNT(*) FROM tasks WHERE status IN ('running','in_progress')").fetchone()[0]
+        done_24h = c.execute(
+            "SELECT COUNT(*) FROM tasks WHERE status='completed' AND completed > ?",
+            ((datetime.now() - timedelta(hours=24)).isoformat(),)
+        ).fetchone()[0]
+        top_tasks = c.execute(
+            "SELECT title, priority FROM tasks WHERE status NOT IN ('completed') ORDER BY id DESC LIMIT 5"
+        ).fetchall()
+        c.close()
+
+        task_lines = "\n".join(f"  • {r[0][:55]} [{r[1] or 'P3'}]" for r in top_tasks) or "  None"
+        name = get_agent_name()
+        brief = (
+            f"Good morning, Ash.\n\n"
+            f"*{name} — Daily Brief {datetime.now().strftime('%a %d %b')}*\n\n"
+            f"Tasks: {in_prog} in progress | {backlog} open | {done_24h} completed last 24h\n\n"
+            f"Top open:\n{task_lines}\n\n"
+            f"Memory: {mem_count():,} entries | Mode: {'GOD' if god_mode_active() else 'standard'}\n\n"
+            f"Standing by."
+        )
+        _notify(brief, cfg)
+        log.info("Daily brief sent to Telegram")
+    except Exception as e:
+        log.error(f"Daily brief: {e}")
+
 
 # ── MAIN ──────────────────────────────────────────────────
 if __name__ == "__main__":
@@ -2146,19 +2718,24 @@ if __name__ == "__main__":
     # Resume any interrupted tasks from last session
     threading.Thread(target=task_resume_pending, daemon=True).start()
 
-    # Telegram long-poll loop
-    threading.Thread(target=_telegram_poll_loop, daemon=True).start()
+    # Pre-warm faster-whisper model in background (avoids 150s cold-start on first voice message)
+    threading.Thread(target=_get_whisper_model, daemon=True).start()
 
     # ── Scheduler ─────────────────────────────────────────────
     if HAS_APSCHEDULER:
         scheduler = BackgroundScheduler(daemon=True)
-        scheduler.add_job(run_heartbeat, 'interval', minutes=30, id='heartbeat',
+        _scheduler = scheduler  # expose to alarm engine
+        scheduler.add_job(run_heartbeat,              'interval', minutes=30, id='heartbeat',
                           next_run_time=datetime.now())
+        scheduler.add_job(_sched_seo,                 'cron', hour=23, minute=0,  id='seo_nightly')
+        scheduler.add_job(_sched_competitive_research,'cron', hour=0,  minute=0,  id='competitive')
+        scheduler.add_job(_sched_daily_brief,         'cron', hour=9,  minute=0,  id='daily_brief')
         if god_mode_active():
             scheduler.add_job(_god_cycle, 'cron', hour=3, minute=0, id='god_cycle',
                               kwargs={"cfg": load_cfg()})
         scheduler.start()
-        log.info("APScheduler running — heartbeat:30m")
+        _reschedule_alarms()  # load alarms from DB on boot
+        log.info("APScheduler running — heartbeat:30m | SEO:11PM | research:12AM | brief:9AM | alarms:synced")
     else:
         log.warning("APScheduler not found — install with: pip3 install apscheduler")
         log.warning("Falling back to thread-based loops (no SEO/research/brief schedules)")

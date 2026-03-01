@@ -936,6 +936,30 @@ async function orchestrate(directive, chatId) {
     else log(`[ORCHESTRATOR] ${r.agent} completed (${r.duration}s)`);
   });
 
+  // Log agent activity to forge.db via daemon (updates dashboard in real-time)
+  const logPromises = agentResults.map(async r => {
+    if (r.error) return;
+    try {
+      // Increment tasks_done counter for this agent
+      await daemonPost("/agents/activity", { name: r.agent });
+      // Save result to memory table so agent chat shows history
+      await daemonPost("/memory/log", {
+        agent:   r.agent,
+        role:    "assistant",
+        content: r.result ? r.result.slice(0, 4000) : "(no output)"
+      });
+      // Log the directive as the user message so conversation makes sense
+      await daemonPost("/memory/log", {
+        agent:   r.agent,
+        role:    "user",
+        content: directive.slice(0, 500)
+      });
+    } catch (e) {
+      log(`[ORCHESTRATOR] DB log failed for ${r.agent}: ${e.message}`);
+    }
+  });
+  await Promise.all(logPromises);
+
   // Quality gate with one retry on weak outputs
   let gateResult = await qualityGate(directive, agentResults);
 
