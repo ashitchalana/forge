@@ -135,15 +135,17 @@ echo ""
 echo -e "  ${BOLD}Which AI provider do you have?${RESET}"
 echo "    1) Claude subscription (OAuth login) — Recommended"
 echo "    2) Claude API key"
-echo "    3) OpenAI / ChatGPT API key"
-echo "    4) Gemini API key"
-echo "    5) Multiple providers (configure all)"
+echo "    3) OpenAI subscription (OAuth login)"
+echo "    4) OpenAI API key"
+echo "    5) Gemini API key"
+echo "    6) Multiple providers (configure all)"
 echo ""
 ask "Enter number(s), e.g. 1 or 1 3: "
 read -r PROVIDER_CHOICE
 
 CLAUDE_OAUTH=false
 CLAUDE_API_KEY=""
+OPENAI_OAUTH=false
 OPENAI_API_KEY=""
 GEMINI_API_KEY=""
 PRIMARY_PROVIDER="anthropic"
@@ -157,12 +159,17 @@ for choice in $PROVIDER_CHOICE; do
       read -rs CLAUDE_API_KEY; echo ""
       ;;
     3)
+      OPENAI_OAUTH=true
+      PRIMARY_PROVIDER="openai"
+      PRIMARY_MODEL="gpt-4o"
+      ;;
+    4)
       ask "OpenAI API key: "
       read -rs OPENAI_API_KEY; echo ""
       PRIMARY_PROVIDER="openai"
       PRIMARY_MODEL="gpt-4o"
       ;;
-    4)
+    5)
       ask "Gemini API key: "
       read -rs GEMINI_API_KEY; echo ""
       PRIMARY_PROVIDER="google"
@@ -575,6 +582,94 @@ cfg.setdefault('providers', {}).setdefault('anthropic', {})['oauth_configured'] 
 cfg_path.write_text(json.dumps(cfg, indent=2))
 print("forge.json updated with OAuth status")
 PYOAUTH
+  fi
+fi
+
+# ════════════════════════════════════════════════════════════════
+# SECTION 8c — OPENAI OAUTH LOGIN (if selected)
+# ════════════════════════════════════════════════════════════════
+if [[ "$OPENAI_OAUTH" == true ]]; then
+  hdr "OpenAI OAuth Login"
+  echo ""
+  info "Opening browser for OpenAI login — complete the sign-in, then return here..."
+  echo ""
+
+  OPENAI_CLIENT_ID="app_EMoamEEZ73f0CkXaXp7hrann"
+  REDIRECT_URI="http://localhost:1455/auth/callback"
+  OAUTH_URL="https://auth.openai.com/oauth/authorize?client_id=${OPENAI_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=openid+email+profile&id_token_add_organizations=true&codex_cli_simplified_flow=true"
+
+  # Open browser
+  open "$OAUTH_URL" 2>/dev/null || true
+
+  # Spin up a Python mini-server on port 1455 to capture the OAuth callback
+  TOKEN_FILE="$FORGE_CFG/openai_token.json"
+  info "Waiting for OAuth callback on port 1455 (timeout: 120s)..."
+
+  OAUTH_RESULT=$(python3 - <<'PYOAUTH'
+import http.server, urllib.parse, json, threading, sys
+from pathlib import Path
+
+token_data = {}
+server_done = threading.Event()
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        parsed = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
+        code         = params.get('code',         [''])[0]
+        access_token = params.get('access_token', [''])[0]
+        id_token     = params.get('id_token',     [''])[0]
+        token_data.update({'code': code, 'access_token': access_token, 'id_token': id_token})
+        html = b'<html><body style="font-family:sans-serif;text-align:center;padding:60px"><h2>Forge: OAuth complete.</h2><p>Return to your terminal.</p><script>setTimeout(()=>window.close(),2000)</script></body></html>'
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html')
+        self.send_header('Content-Length', str(len(html)))
+        self.end_headers()
+        self.wfile.write(html)
+        server_done.set()
+    def log_message(self, *args):
+        pass
+
+try:
+    httpd = http.server.HTTPServer(('localhost', 1455), Handler)
+    httpd.timeout = 120
+    server_done.wait(timeout=0)   # non-blocking check
+    httpd.handle_request()        # blocks until one request arrives or timeout
+    if token_data.get('code') or token_data.get('access_token'):
+        print('TOKEN_CAPTURED:' + json.dumps(token_data))
+    else:
+        print('TOKEN_EMPTY')
+except OSError as e:
+    print('PORT_CONFLICT:' + str(e))
+except Exception as e:
+    print('ERROR:' + str(e))
+PYOAUTH
+  )
+
+  if echo "$OAUTH_RESULT" | grep -q "^TOKEN_CAPTURED:"; then
+    TOKEN_JSON=$(echo "$OAUTH_RESULT" | sed 's/^TOKEN_CAPTURED://')
+    echo "$TOKEN_JSON" > "$TOKEN_FILE"
+    ok "OpenAI OAuth token saved → ~/.forge/openai_token.json"
+    # Patch forge.json with oauth status and token path
+    python3 - <<PYOAUTH_CFG
+import json
+from pathlib import Path
+cfg_path = Path('$CFG_FILE')
+cfg = json.loads(cfg_path.read_text())
+cfg.setdefault('providers', {}).setdefault('openai', {})['oauth_configured'] = True
+cfg['providers']['openai']['api_key'] = ''
+cfg['providers']['openai']['token_file'] = str(Path.home() / '.forge' / 'openai_token.json')
+cfg_path.write_text(json.dumps(cfg, indent=2))
+print("forge.json updated with OpenAI OAuth")
+PYOAUTH_CFG
+  elif echo "$OAUTH_RESULT" | grep -q "^PORT_CONFLICT:"; then
+    warn "Port 1455 already in use — OAuth capture failed"
+    warn "Kill the conflicting process: lsof -ti:1455 | xargs kill -9"
+    warn "Then re-run the installer or add token manually to ~/.forge/forge.json"
+  else
+    warn "OpenAI OAuth timed out or returned no token"
+    warn "Add your OpenAI API key manually: nano ~/.forge/forge.json"
+    warn "Or re-run installer and choose option 4 (OpenAI API key) instead"
   fi
 fi
 
