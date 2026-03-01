@@ -504,18 +504,31 @@ add_alias() {
   fi
 }
 
-# forge-restart — kill + restart daemon in tmux
+# forge-restart — kill + restart daemon AND gateway
 cat > "$FORGE_CFG/forge-start.sh" <<'STARTSCRIPT'
 #!/usr/bin/env bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+# Kill existing processes
 pkill -f "daemon.py" 2>/dev/null || true
+pkill -f "gateway.js" 2>/dev/null || true
+lsof -ti:2079 | xargs kill -9 2>/dev/null || true
+lsof -ti:2077 | xargs kill -9 2>/dev/null || true
 sleep 1
-if command -v tmux &>/dev/null; then
-  tmux new-session -d -s forge "python3 ~/.forge/daemon.py" 2>/dev/null || \
-  tmux send-keys -t forge "python3 ~/.forge/daemon.py" Enter 2>/dev/null || \
-  nohup python3 ~/.forge/daemon.py > ~/.forge/logs/daemon.log 2>&1 &
-else
-  nohup python3 ~/.forge/daemon.py > ~/.forge/logs/daemon.log 2>&1 &
+
+mkdir -p ~/.forge/logs
+
+# Start daemon
+nohup python3 ~/.forge/daemon.py > ~/.forge/logs/daemon.log 2>&1 &
+DAEMON_PID=$!
+echo $DAEMON_PID > ~/.forge/daemon.pid
+
+# Start gateway (only if node and gateway.js exist)
+if command -v node &>/dev/null && [[ -f ~/.forge/gateway.js ]]; then
+  nohup node ~/.forge/gateway.js > ~/.forge/logs/gateway.log 2>&1 &
+  echo $! > ~/.forge/gateway.pid
 fi
+
 sleep 2
 if curl -s http://localhost:2079/status | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Forge online — {d[\"name\"]} | memories: {d[\"memories\"]}')" 2>/dev/null; then
   :
