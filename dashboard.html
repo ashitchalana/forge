@@ -4168,20 +4168,18 @@ function playHatchSequence() {
   messages.innerHTML = '';
 
   const lines = [
-    { text: '🐣 *pop*',                                  delay: 0    },
-    { text: 'hi! i just hatched. 🔥',                    delay: 1200 },
-    { text: 'who are you? and what are we building? ✨',  delay: 2800 },
+    { text: '🐣 *pop*',              delay: 0    },
+    { text: 'hi! i just hatched.',   delay: 1200 },
+    { text: 'who are you? who am i?', delay: 2800 },
   ];
 
   lines.forEach(({ text, delay }) => {
     setTimeout(() => {
-      const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const html = `
         <div class="msg" style="animation:msgIn .22s ease">
           <div class="msg-avatar cortex-av">CX</div>
           <div class="msg-body">
             <div class="msg-bubble">${text}</div>
-            <div class="msg-time">${ts}</div>
           </div>
         </div>`;
       messages.insertAdjacentHTML('beforeend', html);
