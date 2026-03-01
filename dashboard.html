@@ -4077,7 +4077,7 @@ function agentColor(name) {
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff;
-  return name === 'FORGE' ? '#6366f1' : palette[Math.abs(hash) % palette.length];
+  return palette[Math.abs(hash) % palette.length];
 }
 
 function applyAgentChatColor(name) {
@@ -4760,7 +4760,8 @@ function renderMcAgentGrid() {
       if (marker) { marker.style.background = col; marker.style.boxShadow = `0 0 5px ${col}`; }
     }
   });
-  const forgeEntry = { name: document.getElementById('sidebar-agent-name')?.textContent || 'FORGE', role:'Master Orchestrator', model: curModel || 'claude-sonnet-4-6', color:'#6366f1', emoji:'⚡', domain:'Orchestration · All Domains' };
+  const _agentName = document.getElementById('sidebar-agent-name')?.textContent || 'FORGE';
+  const forgeEntry = { name: _agentName, role:'Master Orchestrator', model: curModel || 'claude-sonnet-4-6', color: agentColor(_agentName), emoji:'⚡', domain:'Orchestration · All Domains' };
   const allAgents = [forgeEntry, ...agents];
   grid.innerHTML = allAgents.map((a, i) => {
     const count = taskCounts[a.name] || 0;
@@ -4814,7 +4815,7 @@ function renderKanbanBoard(data) {
       const autoPct = col.key === 'completed' ? 100 : col.key === 'in_progress' ? (prog || 50) : (prog || 0);
       const fillClass = autoPct >= 100 ? 'pct-100' : autoPct === 0 ? 'pct-0' : '';
       const assigneeInitial = t.assignee ? xss(t.assignee).charAt(0).toUpperCase() : null;
-      const assigneeColor = t.assignee === 'FORGE' ? '#10b981' : '#6366f1';
+      const assigneeColor = agentColor(t.assignee || '');
       const isDone = col.key === 'completed';
       return `<div class="task-card${ageWarn?' age-warn':''}${isDone?' is-done':''}" onclick="openTaskDetail(${t.id})">
         <div class="task-card-body">
@@ -4919,13 +4920,13 @@ function buildAssigneeChipsFor(containerId, hiddenId, selected) {
     if (!seen.has(key)) { seen.add(key); list.push({ id, label, color }); }
   };
   // Owner only if distinct from agent
-  if (ownerRaw) tryAdd(ownerRaw, ownerRaw, '#6366f1');
-  tryAdd(agentRaw, agentRaw, '#10b981');
+  if (ownerRaw) tryAdd(ownerRaw, ownerRaw, agentColor(ownerRaw));
+  tryAdd(agentRaw, agentRaw, agentColor(agentRaw));
   // Spawned agents
-  agents.forEach(a => tryAdd(a.name, a.name, '#8b5cf6'));
+  agents.forEach(a => tryAdd(a.name, a.name, agentColor(a.name)));
   // Also add from task assignees seen in board
   mcTasks.forEach(t => {
-    if (t.assignee) tryAdd(t.assignee, t.assignee, '#8b5cf6');
+    if (t.assignee) tryAdd(t.assignee, t.assignee, agentColor(t.assignee));
   });
 
   container.innerHTML = list.map(a => {
