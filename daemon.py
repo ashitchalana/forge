@@ -466,6 +466,169 @@ If you build a file → save it with __SAVE__.
 
 # ── AUTH ENGINE ───────────────────────────────────────────
 
+# ── OPENAI OAUTH BROWSER FLOW ─────────────────────────────
+OPENAI_OAUTH_CLIENT_ID   = "app_EMoamEEZ73f0CkXaXp7hrann"
+OPENAI_OAUTH_REDIRECT    = "http://localhost:1455/auth/callback"
+OPENAI_OAUTH_AUTH_URL    = "https://auth.openai.com/authorize"
+OPENAI_OAUTH_TOKEN_URL   = "https://auth.openai.com/token"
+OPENAI_OAUTH_SCOPE       = "openid email profile"
+OPENAI_OAUTH_PORT        = 1455
+
+
+def _openai_oauth_browser_flow():
+    """
+    OpenAI OAuth PKCE browser flow.
+    Called on daemon startup when provider is 'openai' AND no valid token exists.
+    Opens system browser → PKCE auth → captures callback on localhost:1455
+    → exchanges code → saves token to ~/.forge/openai_token.json
+    Skips re-auth if a valid access_token is already present in the token file.
+    """
+    import hashlib, base64, secrets, webbrowser, time as _time
+    import urllib.request, urllib.parse
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+
+    token_file = FORGE_CFG / "openai_token.json"
+
+    # ── Guard: skip re-auth if a valid token already exists ───────────────
+    if token_file.exists():
+        try:
+            _existing = json.loads(token_file.read_text())
+            if _existing.get("access_token"):
+                log.info("OpenAI OAuth: valid access_token already on disk — skipping browser flow ✓")
+                return
+            else:
+                log.warning(
+                    "OpenAI OAuth: token file exists but access_token is empty "
+                    "(installer likely captured auth code without exchanging it) — re-running PKCE flow"
+                )
+                try:
+                    token_file.unlink()
+                except Exception:
+                    pass
+        except Exception as _guard_err:
+            log.warning(f"OpenAI OAuth: could not read existing token file — {_guard_err}")
+            try:
+                token_file.unlink()
+            except Exception:
+                pass
+
+    # ── PKCE challenge generation ──────────────────────────
+    code_verifier  = secrets.token_urlsafe(64)
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode()).digest()
+    ).rstrip(b"=").decode()
+    state = secrets.token_urlsafe(16)
+
+    # ── Build authorization URL ────────────────────────────
+    params = urllib.parse.urlencode({
+        "response_type":             "code",
+        "client_id":                 OPENAI_OAUTH_CLIENT_ID,
+        "redirect_uri":              OPENAI_OAUTH_REDIRECT,
+        "scope":                     OPENAI_OAUTH_SCOPE,
+        "state":                     state,
+        "code_challenge":            code_challenge,
+        "code_challenge_method":     "S256",
+        "id_token_add_organizations": "true",
+        "codex_cli_simplified_flow": "true",
+    })
+    auth_url = f"{OPENAI_OAUTH_AUTH_URL}?{params}"
+
+    # ── Shared result container ────────────────────────────
+    result = {"code": None, "error": None, "done": False}
+
+    class _CallbackHandler(BaseHTTPRequestHandler):
+        def log_message(self, fmt, *args):
+            pass  # suppress HTTP logs
+
+        def do_GET(self):
+            parsed = urllib.parse.urlparse(self.path)
+            qs     = urllib.parse.parse_qs(parsed.query)
+            if parsed.path == "/auth/callback":
+                if "code" in qs:
+                    result["code"] = qs["code"][0]
+                    body = b"<html><body><h2>Forge: Authentication successful. You may close this tab.</h2></body></html>"
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/html")
+                    self.end_headers()
+                    self.wfile.write(body)
+                elif "error" in qs:
+                    result["error"] = qs.get("error_description", qs.get("error", ["unknown"]))[0]
+                    body = b"<html><body><h2>Forge: Authentication failed. Check daemon logs.</h2></body></html>"
+                    self.send_response(400)
+                    self.send_header("Content-Type", "text/html")
+                    self.end_headers()
+                    self.wfile.write(body)
+                result["done"] = True
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+    def _run_server():
+        try:
+            srv = HTTPServer(("127.0.0.1", OPENAI_OAUTH_PORT), _CallbackHandler)
+            srv.timeout = 1
+            deadline = _time.time() + 300  # 5-minute window
+            while not result["done"] and _time.time() < deadline:
+                srv.handle_request()
+            srv.server_close()
+        except Exception as _srv_err:
+            log.error(f"OpenAI OAuth callback server error: {_srv_err}")
+            result["done"] = True
+
+    def _exchange_code(code):
+        payload = urllib.parse.urlencode({
+            "grant_type":    "authorization_code",
+            "code":          code,
+            "redirect_uri":  OPENAI_OAUTH_REDIRECT,
+            "client_id":     OPENAI_OAUTH_CLIENT_ID,
+            "code_verifier": code_verifier,
+        }).encode()
+        req = urllib.request.Request(
+            OPENAI_OAUTH_TOKEN_URL,
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read())
+
+    log.info("OpenAI OAuth: starting browser flow...")
+
+    # Start callback server in background thread
+    srv_thread = threading.Thread(target=_run_server, daemon=True)
+    srv_thread.start()
+
+    # Open browser
+    _time.sleep(0.3)  # give server a moment to bind
+    log.info(f"OpenAI OAuth: opening browser → {auth_url[:80]}...")
+    webbrowser.open(auth_url)
+
+    # Wait for callback (up to 5 minutes)
+    deadline = _time.time() + 300
+    while not result["done"] and _time.time() < deadline:
+        _time.sleep(0.5)
+
+    if result["error"]:
+        log.error(f"OpenAI OAuth: browser auth failed — {result['error']}")
+        return
+
+    if not result["code"]:
+        log.error("OpenAI OAuth: no code received — auth timed out or was cancelled")
+        return
+
+    # Exchange code for token
+    try:
+        token_data = _exchange_code(result["code"])
+        access_token = token_data.get("access_token", "")
+        if not access_token:
+            log.error(f"OpenAI OAuth: token exchange returned no access_token — {token_data}")
+            return
+        token_file.write_text(json.dumps(token_data, indent=2))
+        log.info("OpenAI OAuth: token saved to openai_token.json ✓")
+    except Exception as _tok_err:
+        log.error(f"OpenAI OAuth: token exchange failed — {_tok_err}")
+
+
 DEEP_KEYWORDS = [
     "build","create","make","deploy","refactor","rewrite","implement",
     "code","script","function","component","page","landing","dashboard",
@@ -2816,6 +2979,23 @@ if __name__ == "__main__":
 
     # Create skills dir
     SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # ── OpenAI OAuth — unconditional browser trigger on boot ──────────────
+    _startup_cfg = load_cfg()
+    _startup_provider = (
+        _startup_cfg.get("models", {}).get(
+            _startup_cfg.get("active_model", ""), {}
+        ).get("provider")
+        or _startup_cfg.get("models", {}).get(
+            _startup_cfg.get("models", {}).get("primary", {}).get("provider", ""), {}
+        ).get("provider")
+        or (_startup_cfg.get("models", {}).get("primary") or {}).get("provider")
+        or _startup_cfg.get("provider", "")
+    )
+    if _startup_provider == "openai":
+        log.info("OpenAI provider detected — launching OAuth browser flow on startup")
+        threading.Thread(target=_openai_oauth_browser_flow, daemon=True).start()
+    # ───────────────────────────────────────────────────────────────────────
 
     # Resume any interrupted tasks from last session
     threading.Thread(target=task_resume_pending, daemon=True).start()
