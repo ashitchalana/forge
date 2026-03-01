@@ -122,6 +122,12 @@
   --font-d:    'Syne', sans-serif;
   --font-b:    'Inter', sans-serif;
   --font-m:    'JetBrains Mono', monospace;
+  /* ── AGENT CHAT THEME VARS (defaults — overridden per agent) ── */
+  --chat-bg:           transparent;
+  --chat-header-tint:  var(--sur);
+  --chat-accent:       var(--acc);
+  --chat-accent-rgb:   109, 40, 217;
+  --chat-input-bg:     var(--sur);
 }
 
 [data-theme="dark"] {
@@ -144,6 +150,11 @@
   --glow:      rgba(139,92,246,.15);
   --glow2:     rgba(139,92,246,.28);
   --topbar-bg: rgba(7,6,14,0.82);
+  --chat-bg:           transparent;
+  --chat-header-tint:  var(--sur);
+  --chat-accent:       var(--acc);
+  --chat-accent-rgb:   139, 92, 246;
+  --chat-input-bg:     var(--sur);
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -451,6 +462,8 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  background: var(--chat-bg);
+  transition: background 0.4s ease;
 }
 
 .msg {
@@ -596,6 +609,165 @@ body::before {
 }
 .send-btn:hover { background: var(--acc2); transform: translateY(-1px); }
 .send-btn:active { transform: none; }
+
+/* ── CHAT VIEW: agent-themed header + input ── */
+#view-chat .view-head {
+  background: var(--chat-header-tint);
+  transition: background 0.4s ease;
+}
+#view-chat .view-head .view-title {
+  color: var(--chat-accent);
+  transition: color 0.4s ease;
+}
+#view-chat .view-head .view-sub {
+  color: var(--chat-accent);
+  opacity: 0.55;
+  transition: color 0.4s ease;
+}
+#view-chat .input-area {
+  background: var(--chat-input-bg);
+  transition: background 0.4s ease;
+}
+#view-chat .input-field:focus {
+  border-color: var(--chat-accent);
+}
+#view-chat .send-btn {
+  background: var(--chat-accent);
+  transition: background 0.4s ease, transform 0.18s;
+}
+#view-chat .send-btn:hover {
+  background: var(--chat-accent);
+  filter: brightness(1.15);
+}
+#view-chat .from-user .msg-bubble {
+  background: var(--chat-accent);
+  border-color: var(--chat-accent);
+}
+#view-chat .empty-title {
+  color: var(--chat-accent);
+  transition: color 0.4s ease;
+}
+#view-chat .empty-logo rect {
+  fill: rgba(var(--chat-accent-rgb), 0.15);
+}
+#view-chat .empty-logo path {
+  fill: rgba(var(--chat-accent-rgb), 0.7);
+}
+
+/* ══════════════════════════════════════════
+   AGENT CHAT THEMES
+   Light: faint tint (5-8% opacity bg)
+   Dark:  deeper tint (12-18%)
+══════════════════════════════════════════ */
+
+/* FORGE — default purple (explicit, matches baseline) */
+#view-chat[data-agent="FORGE"] {
+  --chat-accent:      #6d28d9;
+  --chat-accent-rgb:  109, 40, 217;
+  --chat-bg:          transparent;
+  --chat-header-tint: var(--sur);
+  --chat-input-bg:    var(--sur);
+}
+[data-theme="dark"] #view-chat[data-agent="FORGE"] {
+  --chat-accent:      #8b5cf6;
+  --chat-accent-rgb:  139, 92, 246;
+}
+
+/* VISHVAKARMA — CTO / Engineering / Teal */
+#view-chat[data-agent="vishvakarma"] {
+  --chat-accent:      #0d9488;
+  --chat-accent-rgb:  13, 148, 136;
+  --chat-bg:          rgba(13, 148, 136, 0.04);
+  --chat-header-tint: rgba(13, 148, 136, 0.06);
+  --chat-input-bg:    rgba(13, 148, 136, 0.03);
+}
+[data-theme="dark"] #view-chat[data-agent="vishvakarma"] {
+  --chat-accent:      #14b8a6;
+  --chat-accent-rgb:  20, 184, 166;
+  --chat-bg:          rgba(20, 184, 166, 0.07);
+  --chat-header-tint: rgba(20, 184, 166, 0.09);
+  --chat-input-bg:    rgba(20, 184, 166, 0.05);
+}
+
+/* SOPHIA — CMO / Creative / Rose */
+#view-chat[data-agent="sophia"] {
+  --chat-accent:      #e11d48;
+  --chat-accent-rgb:  225, 29, 72;
+  --chat-bg:          rgba(225, 29, 72, 0.04);
+  --chat-header-tint: rgba(225, 29, 72, 0.06);
+  --chat-input-bg:    rgba(225, 29, 72, 0.03);
+}
+[data-theme="dark"] #view-chat[data-agent="sophia"] {
+  --chat-accent:      #f43f5e;
+  --chat-accent-rgb:  244, 63, 94;
+  --chat-bg:          rgba(244, 63, 94, 0.07);
+  --chat-header-tint: rgba(244, 63, 94, 0.09);
+  --chat-input-bg:    rgba(244, 63, 94, 0.05);
+}
+
+/* LAKSHMI — CFO / Strategy / Gold Navy */
+#view-chat[data-agent="lakshmi"] {
+  --chat-accent:      #b45309;
+  --chat-accent-rgb:  180, 83, 9;
+  --chat-bg:          rgba(180, 83, 9, 0.04);
+  --chat-header-tint: rgba(180, 83, 9, 0.06);
+  --chat-input-bg:    rgba(180, 83, 9, 0.03);
+}
+[data-theme="dark"] #view-chat[data-agent="lakshmi"] {
+  --chat-accent:      #eab308;
+  --chat-accent-rgb:  234, 179, 8;
+  --chat-bg:          rgba(234, 179, 8, 0.06);
+  --chat-header-tint: rgba(234, 179, 8, 0.08);
+  --chat-input-bg:    rgba(234, 179, 8, 0.04);
+}
+
+/* ATHENA — Research / Intel / Indigo */
+#view-chat[data-agent="athena"] {
+  --chat-accent:      #4338ca;
+  --chat-accent-rgb:  67, 56, 202;
+  --chat-bg:          rgba(67, 56, 202, 0.04);
+  --chat-header-tint: rgba(67, 56, 202, 0.06);
+  --chat-input-bg:    rgba(67, 56, 202, 0.03);
+}
+[data-theme="dark"] #view-chat[data-agent="athena"] {
+  --chat-accent:      #818cf8;
+  --chat-accent-rgb:  129, 140, 248;
+  --chat-bg:          rgba(129, 140, 248, 0.07);
+  --chat-header-tint: rgba(129, 140, 248, 0.09);
+  --chat-input-bg:    rgba(129, 140, 248, 0.05);
+}
+
+/* HERMES — Sales / Momentum / Amber */
+#view-chat[data-agent="hermes"] {
+  --chat-accent:      #d97706;
+  --chat-accent-rgb:  217, 119, 6;
+  --chat-bg:          rgba(217, 119, 6, 0.04);
+  --chat-header-tint: rgba(217, 119, 6, 0.06);
+  --chat-input-bg:    rgba(217, 119, 6, 0.03);
+}
+[data-theme="dark"] #view-chat[data-agent="hermes"] {
+  --chat-accent:      #f59e0b;
+  --chat-accent-rgb:  245, 158, 11;
+  --chat-bg:          rgba(245, 158, 11, 0.07);
+  --chat-header-tint: rgba(245, 158, 11, 0.09);
+  --chat-input-bg:    rgba(245, 158, 11, 0.05);
+}
+
+/* PROMETHEUS — Revenue / Fire / Crimson */
+#view-chat[data-agent="prometheus"] {
+  --chat-accent:      #b91c1c;
+  --chat-accent-rgb:  185, 28, 28;
+  --chat-bg:          rgba(185, 28, 28, 0.04);
+  --chat-header-tint: rgba(185, 28, 28, 0.06);
+  --chat-input-bg:    rgba(185, 28, 28, 0.03);
+}
+[data-theme="dark"] #view-chat[data-agent="prometheus"] {
+  --chat-accent:      #ef4444;
+  --chat-accent-rgb:  239, 68, 68;
+  --chat-bg:          rgba(239, 68, 68, 0.07);
+  --chat-header-tint: rgba(239, 68, 68, 0.09);
+  --chat-input-bg:    rgba(239, 68, 68, 0.05);
+}
 
 /* Send icon SVG */
 .send-icon { width:15px; height:15px; }
@@ -3770,6 +3942,7 @@ select option {
 //  STATE
 // ══════════════════════════════════════════
 let curAgent    = 'FORGE';
+document.addEventListener('DOMContentLoaded', () => { const vc = document.getElementById('view-chat'); if(vc) vc.dataset.agent = 'FORGE'; });
 let curModel    = '';
 let curProvider = 'anthropic';
 let agents    = [];
@@ -3960,6 +4133,7 @@ async function loadAgents() {
 
 function selectAgent(name, btn) {
   curAgent = name;
+  document.getElementById('view-chat').dataset.agent = name;
   document.querySelectorAll('.agent-item').forEach(b => b.classList.remove('active'));
   const el = document.getElementById('ag-' + name);
   if (el) el.classList.add('active');
