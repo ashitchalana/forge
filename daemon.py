@@ -2062,7 +2062,8 @@ class Handler(BaseHTTPRequestHandler):
 
         if p == "/keys":
             cfg = load_cfg()
-            self.out(cfg.get("integrations", {})); return
+            # Return both integrations and providers so dashboard can prefill all keys
+            self.out({"integrations": cfg.get("integrations", {}), "providers": cfg.get("providers", {})}); return
 
         if p == "/alarms":
             c = _db()
@@ -2348,8 +2349,12 @@ class Handler(BaseHTTPRequestHandler):
         # ── API Key Vault ──────────────────────────────────────
         if p == "/keys":
             cfg = load_cfg()
-            integrations = b if isinstance(b, dict) else {}
-            cfg["integrations"] = integrations
+            payload = b if isinstance(b, dict) else {}
+            # Merge integrations and providers at top level (not double-nested)
+            if "integrations" in payload:
+                cfg.setdefault("integrations", {}).update(payload["integrations"])
+            if "providers" in payload:
+                cfg.setdefault("providers", {}).update(payload["providers"])
             save_cfg(cfg)
             self.out({"success": True}); return
 

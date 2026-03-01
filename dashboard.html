@@ -4001,7 +4001,7 @@ async function init() {
   await loadAgents();
   populateModels();
   setInterval(loadStatus, 15000);
-  setInterval(loadMissionControl, 20000); // auto-refresh MC every 20s
+  setInterval(loadMissionControl, 4000); // auto-refresh MC every 4s (real-time tasks)
   loadMissionControl();
 }
 
@@ -4149,7 +4149,7 @@ async function loadAgents() {
 
 function selectAgent(name, btn) {
   curAgent = name;
-  document.getElementById('view-chat').dataset.agent = name;
+  document.getElementById('view-chat').dataset.agent = name.toLowerCase();
   document.querySelectorAll('.agent-item').forEach(b => b.classList.remove('active'));
   const el = document.getElementById('ag-' + name);
   if (el) el.classList.add('active');
