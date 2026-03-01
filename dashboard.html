@@ -3414,14 +3414,14 @@ select option {
               <div class="stab-row-key" style="color:var(--tx2)">Reset Memory</div>
               <div class="stab-row-desc">Delete all stored learnings from forge.db</div>
             </div>
-            <button class="btn-danger" onclick="if(confirm('Delete all memory? This cannot be undone.')) api('/memory/reset',{confirm:true})">Reset Memory</button>
+            <button class="btn-danger" onclick="if(confirm('Delete all memory? This cannot be undone.')) api('/memory/reset',{confirm:true}).then(r=>{ if(r.success){ loadStatus(); showSavedToast('Memory cleared'); } else { alert('Failed: '+(r.error||'unknown error')); } })">Reset Memory</button>
           </div>
           <div class="danger-row">
             <div>
               <div class="stab-row-key" style="color:var(--tx2)">Clear All Tasks</div>
               <div class="stab-row-desc">Remove all tasks from the board</div>
             </div>
-            <button class="btn-danger" onclick="if(confirm('Clear all tasks? This cannot be undone.')) api('/tasks/clear',{confirm:true}).then(loadMissionControl)">Clear Tasks</button>
+            <button class="btn-danger" onclick="if(confirm('Clear all tasks? This cannot be undone.')) api('/tasks/clear',{confirm:true}).then(r=>{ if(r.success){ loadMissionControl(); showSavedToast('Tasks cleared'); } else { alert('Failed: '+(r.error||'unknown error')); } })">Clear Tasks</button>
           </div>
         </div>
       </div>

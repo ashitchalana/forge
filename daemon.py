@@ -2518,6 +2518,27 @@ Escalate to CORTEX only when cross-domain synthesis is required.
                     fpath.write_text(content_txt)
             self.out({"success": True, "path": str(agent_dir), "files": list(files.keys())}); return
 
+        # ── Danger Zone: Reset Memory ──────────────────────────────────
+        if p == "/memory/reset":
+            confirm = b.get("confirm")
+            if not confirm: self.out({"error": "confirm required"}, 400); return
+            c = _db()
+            c.execute("DELETE FROM memory")
+            c.execute("DELETE FROM learnings")
+            c.commit(); c.close()
+            log.info("Memory + learnings tables cleared via dashboard")
+            self.out({"success": True, "message": "Memory cleared"}); return
+
+        # ── Danger Zone: Clear All Tasks ────────────────────────────────
+        if p == "/tasks/clear":
+            confirm = b.get("confirm")
+            if not confirm: self.out({"error": "confirm required"}, 400); return
+            c = _db()
+            c.execute("DELETE FROM tasks")
+            c.commit(); c.close()
+            log.info("Tasks table cleared via dashboard")
+            self.out({"success": True, "message": "Tasks cleared"}); return
+
         self.out({"error":"not found"},404)
 
 
