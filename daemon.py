@@ -186,6 +186,29 @@ def migrate_db():
         try:
             c.execute(sql); c.commit()
         except: pass  # Column already exists
+
+    # Add last_status and last_result to alarms table if missing
+    try:
+        c.execute("ALTER TABLE alarms ADD COLUMN last_status TEXT")
+        c.commit()
+    except: pass
+    try:
+        c.execute("ALTER TABLE alarms ADD COLUMN last_result TEXT")
+        c.commit()
+    except: pass
+
+    # Create alarm_logs table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS alarm_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            alarm_id INTEGER NOT NULL,
+            fired_at TEXT NOT NULL,
+            status TEXT NOT NULL,
+            result TEXT,
+            triggered_msg TEXT
+        )
+    """)
+    c.commit()
     c.close()
 
 def _db():
@@ -2080,6 +2103,17 @@ class Handler(BaseHTTPRequestHandler):
             c.close()
             self.out([dict(r) for r in rows]); return
 
+        if p == "/alarm-logs":
+            qs = parse_qs(urlparse(self.path).query)
+            alarm_id = int(qs.get("alarm_id", [0])[0])
+            c = _db()
+            rows = c.execute(
+                "SELECT * FROM alarm_logs WHERE alarm_id=? ORDER BY id DESC LIMIT 10",
+                (alarm_id,)
+            ).fetchall()
+            c.close()
+            self.out([dict(r) for r in rows]); return
+
         if p == "/gsd":
             gsd_file = FORGE_CFG / ".gsd_state.json"
             if gsd_file.exists():
@@ -2544,7 +2578,7 @@ Escalate to CORTEX only when cross-domain synthesis is required.
 
 # ── ALARM ENGINE ──────────────────────────────────────────
 def _fire_alarm(alarm_id: int):
-    """Execute an alarm: run the task via skill or AI and deliver output to the chosen channel."""
+    """Execute an alarm: route through process_chat with isolated agent ID. Result only goes to Telegram."""
     try:
         c = _db()
         row = c.execute("SELECT * FROM alarms WHERE id=?", (alarm_id,)).fetchone()
@@ -2557,48 +2591,45 @@ def _fire_alarm(alarm_id: int):
         task = alarm.get("task", "").strip()
         log.info(f"Alarm firing: [{alarm['name']}] → {task[:80]}")
 
-        # Direct skill dispatch: SKILL:name:arg1=val1,arg2=val2
-        if task.upper().startswith("SKILL:"):
-            parts    = task[6:].split(":", 1)
-            skill_nm = parts[0].strip()
-            kw_str   = parts[1].strip() if len(parts) > 1 else ""
-            kwargs   = {}
-            for item in kw_str.split(","):
-                if "=" in item:
-                    k, v = item.split("=", 1)
-                    kwargs[k.strip()] = v.strip()
-            result = call_skill(skill_nm, **kwargs)
-        else:
-            # AI execution — include available skills in context
-            skills_info = _skills_summary()
-            prompt = (
-                f"You are Forge, the autonomous AI assistant. An alarm just fired: '{alarm['name']}'.\n"
-                f"Your task: {task}\n\n"
-                f"Available skills you can call (use call_skill in your reasoning):\n{skills_info}\n\n"
-                "Execute this task fully. Be concise — Telegram-friendly output "
-                "(no markdown ## headers, use *bold*, bullet points OK, max ~600 words)."
-            )
-            result = ForgeAI.call(prompt, cfg)
-
+        # Route through process_chat with isolated agent ID (task text never sent to Telegram)
+        result = process_chat(task, agent=f"ALARM_{alarm_id}")
         result = (result or "Task completed — no output returned.")[:3800]
 
-        # Deliver result
-        channel = alarm.get("channel", "telegram")
-        header  = f"⏰ *{alarm['name']}*\n\n"
-        if channel == "telegram":
-            _notify(header + result, cfg)
-        elif channel == "slack":
-            slack_ch = cfg.get("integrations", {}).get("slack", {}).get("default_channel", "#general")
-            call_skill("slack_send", message=header + result, channel=slack_ch)
+        fired_at = datetime.now().isoformat()
 
-        # Update last_run
+        # Log execution to alarm_logs (task text stays here, not in Telegram)
         c = _db()
-        c.execute("UPDATE alarms SET last_run=? WHERE id=?", (datetime.now().isoformat(), alarm_id))
+        c.execute(
+            "INSERT INTO alarm_logs (alarm_id, fired_at, status, result, triggered_msg) VALUES (?,?,?,?,?)",
+            (alarm_id, fired_at, "completed", result[:500], task)
+        )
+        # Update alarms table with last run metadata
+        c.execute(
+            "UPDATE alarms SET last_run=?, last_status=?, last_result=? WHERE id=?",
+            (fired_at, "completed", result[:300], alarm_id)
+        )
         c.commit(); c.close()
+
+        # Deliver only the result to Telegram (not the task text)
+        _notify(f"Alarm: {alarm['name']}\n\n{result[:1000]}", cfg)
 
         log.info(f"Alarm [{alarm['name']}] completed.")
     except Exception as e:
         log.error(f"Alarm fire error (id={alarm_id}): {e}")
+        fired_at = datetime.now().isoformat()
+        try:
+            c = _db()
+            c.execute(
+                "INSERT INTO alarm_logs (alarm_id, fired_at, status, result, triggered_msg) VALUES (?,?,?,?,?)",
+                (alarm_id, fired_at, "failed", str(e), "")
+            )
+            c.execute(
+                "UPDATE alarms SET last_run=?, last_status=? WHERE id=?",
+                (fired_at, "failed", alarm_id)
+            )
+            c.commit(); c.close()
+        except Exception as db_err:
+            log.error(f"Alarm log write error (id={alarm_id}): {db_err}")
 
 
 def _skills_summary() -> str:

@@ -2232,6 +2232,10 @@ body::before {
 .alarm-name { font-size: 13px; font-weight: 600; color: var(--tx1); }
 .alarm-sched { font-size: 11px; color: var(--acc); font-family: var(--font-m); margin-top: 2px; }
 .alarm-task  { font-size: 11px; color: var(--tx4); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+.alarm-status { font-size: 11px; margin-top: 6px; padding: 2px 6px; border-radius: 4px; display: inline-block; }
+.status-ok    { background: rgba(34,197,94,0.15); color: #22c55e; }
+.status-err   { background: rgba(239,68,68,0.15); color: #ef4444; }
+.status-pending { background: rgba(148,163,184,0.1); color: #94a3b8; }
 .alarm-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .alarm-toggle {
   position: relative; width: 36px; height: 20px;
@@ -5717,18 +5721,24 @@ async function loadAlarms() {
 
   list.innerHTML = alarms.map(a => {
     const schedLabel = cronToHuman(a.cron || '');
+    const statusClass = a.last_status === 'completed' ? 'status-ok' : a.last_status === 'failed' ? 'status-err' : 'status-pending';
+    const statusLabel = a.last_status
+      ? `${a.last_status === 'completed' ? '✓' : '✗'} Last run: ${a.last_run ? new Date(a.last_run).toLocaleTimeString() : '—'}`
+      : 'Not yet run';
     return `<div class="alarm-card ${a.enabled === false ? 'disabled' : ''}" id="alarm-card-${a.id}">
       <div class="alarm-icon">⏰</div>
       <div class="alarm-info">
         <div class="alarm-name">${escHtml(a.name || 'Untitled')}</div>
         <div class="alarm-sched">${schedLabel}</div>
         <div class="alarm-task">${escHtml(a.task || '')}</div>
+        <div class="alarm-status ${statusClass}">${statusLabel}</div>
       </div>
       <div class="alarm-actions">
         <label class="alarm-toggle" title="${a.enabled !== false ? 'Disable' : 'Enable'}">
           <input type="checkbox" ${a.enabled !== false ? 'checked' : ''} onchange="toggleAlarm(${a.id}, this.checked)">
           <span class="alarm-toggle-slider"></span>
         </label>
+        <button class="btn btn-ghost" style="font-size:10px;height:26px;padding:0 8px" onclick="showAlarmLog(${a.id})">View Log</button>
         <button class="btn btn-ghost" style="font-size:10px;height:26px;padding:0 8px" onclick="editAlarm(${a.id})">Edit</button>
         <button class="btn-icon-del" onclick="deleteAlarm(${a.id})" title="Delete">✕</button>
       </div>
@@ -5752,6 +5762,20 @@ function cronToHuman(cron) {
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function showAlarmLog(alarmId) {
+  try {
+    const res = await fetch(`/api/alarm-logs?alarm_id=${alarmId}`);
+    const logs = await res.json();
+    if (!logs.length) { alert('No execution logs yet.'); return; }
+    const html = logs.map(l =>
+      `[${l.fired_at}] ${l.status.toUpperCase()}\nTask: ${l.triggered_msg}\nResult: ${(l.result||'').substring(0,300)}`
+    ).join('\n\n---\n\n');
+    alert(html);
+  } catch (err) {
+    alert('Failed to load alarm logs: ' + err.message);
+  }
 }
 
 function openAlarmModal(alarm) {
