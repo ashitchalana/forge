@@ -69,6 +69,32 @@ read -r TG_USER_ID
 # Strip any non-numeric characters accidentally entered (e.g. spaces, @)
 TG_USER_ID="${TG_USER_ID//[^0-9]/}"
 
+# ── Validate Telegram token immediately via getMe ──────────────
+TG_BOT_USERNAME=""
+if [[ -n "$TG_TOKEN" ]]; then
+  info "Validating Telegram bot token..."
+  GETME=$(curl -s --max-time 8 "https://api.telegram.org/bot${TG_TOKEN}/getMe" 2>/dev/null || echo "")
+  if echo "$GETME" | grep -q '"ok":true'; then
+    TG_BOT_USERNAME=$(echo "$GETME" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['result'].get('username',''))" 2>/dev/null || echo "")
+    ok "Bot token valid — @${TG_BOT_USERNAME}"
+    echo ""
+    echo -e "  ${BOLD}${YELLOW}ACTION REQUIRED — Telegram setup:${RESET}"
+    echo -e "  1. Open Telegram now"
+    echo -e "  2. Search for ${BOLD}@${TG_BOT_USERNAME}${RESET}"
+    echo -e "  3. Send ${BOLD}/start${RESET} to the bot"
+    echo -e "  (Telegram bots cannot message you until you do this)"
+    echo ""
+    ask "Press Enter once you've sent /start to @${TG_BOT_USERNAME}..."
+    read -r _DUMMY
+  else
+    TG_ERR=$(echo "$GETME" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('description','unknown error'))" 2>/dev/null || echo "network/format error")
+    warn "Bot token invalid: ${TG_ERR}"
+    warn "Skipping Telegram — add a correct token later: nano ~/.forge/forge.json"
+    TG_TOKEN=""
+    TG_USER_ID=""
+  fi
+fi
+
 # AI Provider
 echo ""
 echo -e "  ${BOLD}Which AI provider do you have?${RESET}"
@@ -519,15 +545,48 @@ SKIP_START="${SKIP_START:-false}"
 
 if [[ "$SKIP_START" != "true" ]] && [[ -f "$FORGE_CFG/daemon.py" ]]; then
   bash "$FORGE_CFG/forge-start.sh"
-  sleep 3
 
-  # Health check
-  STATUS=$(curl -s --max-time 5 http://localhost:2079/status 2>/dev/null || echo "")
-  if [[ -n "$STATUS" ]]; then
-    ok "Forge is online"
+  # Condition-based wait — poll every second for up to 20 seconds
+  info "Waiting for daemon to come online..."
+  DAEMON_UP=false
+  for i in {1..20}; do
+    if curl -s --max-time 2 http://localhost:2079/status >/dev/null 2>&1; then
+      DAEMON_UP=true
+      break
+    fi
+    sleep 1
+  done
+
+  if [[ "$DAEMON_UP" == "true" ]]; then
+    ok "Forge daemon is online (port 2079)"
   else
-    warn "Daemon may still be starting. Check: forge-logs"
+    warn "Daemon taking longer than expected — check: forge-logs"
   fi
+fi
+
+# ════════════════════════════════════════════════════════════════
+# SECTION 9b — OPEN DASHBOARD (before Telegram test so a network
+#              hang can never block the browser from opening)
+# ════════════════════════════════════════════════════════════════
+
+# Wait for gateway (port 2077) — up to 12 seconds
+GATEWAY_UP=false
+for i in {1..12}; do
+  if curl -s --max-time 1 http://127.0.0.1:2077 >/dev/null 2>&1; then
+    GATEWAY_UP=true
+    break
+  fi
+  sleep 1
+done
+
+if [[ "$GATEWAY_UP" == "true" ]]; then
+  open http://localhost:2077 2>/dev/null || true
+  ok "Dashboard opened → http://localhost:2077"
+elif [[ -f "$FORGE_CFG/dashboard.html" ]]; then
+  open "$FORGE_CFG/dashboard.html" 2>/dev/null || true
+  ok "Dashboard opened (file fallback — start gateway with: forge-restart)"
+else
+  warn "Dashboard not available — run: forge-restart && open http://localhost:2077"
 fi
 
 # ════════════════════════════════════════════════════════════════
@@ -535,27 +594,42 @@ fi
 # ════════════════════════════════════════════════════════════════
 if [[ -n "$TG_TOKEN" ]] && [[ -n "$TG_USER_ID" ]]; then
   hdr "Sending Telegram confirmation"
-  MSG="*Forge is online* ✓
+  # NOTE: No parse_mode — avoids Telegram Markdown parse errors caused by
+  # underscores or special chars in model names, owner names, or paths.
+  MSG="Forge is online ✓
 
 Hey $OWNER_NAME — install complete.
 
-• Provider: $PRIMARY_PROVIDER ($PRIMARY_MODEL)
-• Daemon: running on port 2079
-• Schedule: 9AM brief | 11PM SEO | 12AM research
-• Workspace: ~/Forge/
-• Commands: forge-restart | forge-logs | forge-status
+Provider: $PRIMARY_PROVIDER ($PRIMARY_MODEL)
+Daemon: running on port 2079
+Dashboard: http://localhost:2077
+Workspace: ~/Forge/
+Commands: forge-restart | forge-logs | forge-status
 
 Ready for your first task."
 
-  RESPONSE=$(curl -s -X POST \
+  RESPONSE=$(curl -s --max-time 10 -X POST \
     "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
     -H "Content-Type: application/json" \
-    -d "{\"chat_id\":\"$TG_USER_ID\",\"text\":\"$MSG\",\"parse_mode\":\"Markdown\"}" 2>/dev/null || echo "")
+    -d "{\"chat_id\":\"$TG_USER_ID\",\"text\":\"$MSG\"}" 2>/dev/null || echo "")
 
   if echo "$RESPONSE" | grep -q '"ok":true'; then
-    ok "Test message sent to Telegram"
+    ok "Forge is live in your Telegram — first message sent ✓"
   else
-    warn "Telegram message failed — check token and user ID in ~/.forge/forge.json"
+    TG_ERR=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('description',''))" 2>/dev/null || echo "")
+    if echo "$TG_ERR" | grep -qi "forbidden\|bot was blocked\|not started\|chat not found"; then
+      warn "Telegram: bot hasn't been started by the user yet"
+      warn "Open Telegram → search @${TG_BOT_USERNAME:-your_bot} → send /start"
+      warn "Then run: forge-restart  (daemon will retry on next heartbeat)"
+    elif echo "$TG_ERR" | grep -qi "unauthorized\|not found"; then
+      warn "Telegram: token is invalid — update in ~/.forge/forge.json"
+    elif [[ -z "$RESPONSE" ]]; then
+      warn "Telegram: network timeout — daemon will retry automatically"
+    else
+      warn "Telegram delivery failed: ${TG_ERR:-unknown error}"
+      warn "Daemon will retry on next heartbeat — this is NOT a credentials issue"
+      warn "If it persists: curl -s http://localhost:2079/status | python3 -m json.tool"
+    fi
   fi
 fi
 
@@ -579,8 +653,4 @@ echo ""
 echo -e "  ${BOLD}STEP 1 — Run this now:${RESET}  source ~/.zshrc"
 echo ""
 
-# Auto-open dashboard
-if [[ -f "$FORGE_CFG/dashboard.html" ]]; then
-  open "$FORGE_CFG/dashboard.html" 2>/dev/null || true
-  ok "Dashboard opened in browser"
-fi
+# Dashboard was already opened in Section 9b above
