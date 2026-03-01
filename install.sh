@@ -6,6 +6,9 @@
 
 set -euo pipefail
 
+# ── TTY fix — ensures read works when piped via curl | bash ───
+if ! [ -t 0 ]; then exec </dev/tty; fi
+
 # ── Colours ───────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
@@ -25,6 +28,8 @@ CORE_DIR="$FORGE_WS/.cortex_brain/core"
 LOG_DIR="$FORGE_CFG/logs"
 CFG_FILE="$FORGE_CFG/forge.json"
 DAEMON_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/daemon.py"
+DASHBOARD_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/dashboard.html"
+GATEWAY_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/gateway.js"
 
 # ── Banner ────────────────────────────────────────────────────
 clear
@@ -59,8 +64,10 @@ ok "Hello, $OWNER_NAME"
 echo ""
 ask "Telegram bot token (from @BotFather — press Enter to skip): "
 read -r TG_TOKEN
-ask "Telegram user ID (from @userinfobot — press Enter to skip): "
+ask "Telegram user ID — numbers only, e.g. 123456789 (send /start to @userinfobot to get it — press Enter to skip): "
 read -r TG_USER_ID
+# Strip any non-numeric characters accidentally entered (e.g. spaces, @)
+TG_USER_ID="${TG_USER_ID//[^0-9]/}"
 
 # AI Provider
 echo ""
@@ -468,6 +475,42 @@ PYOAUTH
 fi
 
 # ════════════════════════════════════════════════════════════════
+# SECTION 8b — DOWNLOAD DASHBOARD + GATEWAY
+# ════════════════════════════════════════════════════════════════
+hdr "Downloading dashboard & gateway"
+
+# dashboard.html — always re-download to get latest version
+if curl -fsSL "$DASHBOARD_SRC" -o "$FORGE_CFG/dashboard.html" 2>/dev/null; then
+  ok "dashboard.html downloaded"
+else
+  warn "Could not download dashboard.html — open manually from GitHub after install"
+fi
+
+# gateway.js — download if not present
+if [[ ! -f "$FORGE_CFG/gateway.js" ]]; then
+  if curl -fsSL "$GATEWAY_SRC" -o "$FORGE_CFG/gateway.js" 2>/dev/null; then
+    ok "gateway.js downloaded"
+  else
+    warn "Could not download gateway.js — Mission Control requires it"
+  fi
+else
+  ok "gateway.js already present"
+fi
+
+# forge-task.sh helper
+if [[ ! -f "$FORGE_CFG/scripts/forge-task.sh" ]]; then
+  mkdir -p "$FORGE_CFG/scripts"
+  TASK_SRC="https://raw.githubusercontent.com/ashitchalana/forge/main/scripts/forge-task.sh"
+  if curl -fsSL "$TASK_SRC" -o "$FORGE_CFG/scripts/forge-task.sh" 2>/dev/null; then
+    chmod +x "$FORGE_CFG/scripts/forge-task.sh"
+    ok "forge-task.sh downloaded"
+  fi
+fi
+
+# Add forge-task alias if missing
+add_alias "forge-task" "bash ~/.forge/scripts/forge-task.sh"
+
+# ════════════════════════════════════════════════════════════════
 # SECTION 9 — START FORGE
 # ════════════════════════════════════════════════════════════════
 hdr "Starting Forge"
@@ -530,8 +573,14 @@ echo "    forge-logs      — tail live logs"
 echo "    forge-status    — health check"
 echo "    forge-stop      — stop daemon"
 echo ""
-echo "  Dashboard: open ~/.forge/dashboard.html in browser"
+echo "  Dashboard: http://localhost:2077  (Mission Control)"
 echo "  Workspace: ~/Forge/"
 echo ""
-echo "  Reload shell:  source ~/.zshrc"
+echo -e "  ${BOLD}STEP 1 — Run this now:${RESET}  source ~/.zshrc"
 echo ""
+
+# Auto-open dashboard
+if [[ -f "$FORGE_CFG/dashboard.html" ]]; then
+  open "$FORGE_CFG/dashboard.html" 2>/dev/null || true
+  ok "Dashboard opened in browser"
+fi
