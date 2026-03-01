@@ -3627,6 +3627,16 @@ select option {
 
         <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx4);margin:24px 0 14px;padding:8px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:var(--acc);border-radius:2px;display:inline-block"></span>AI Providers</div>
 
+        <!-- Kimi (Moonshot AI) -->
+        <div class="stab-group">
+          <div class="stab-group-title">Kimi (Moonshot AI)</div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">API Key</div><div class="key-row-desc">Get your key from <a href="https://platform.moonshot.ai/api-keys" target="_blank" style="color:var(--acc)">platform.moonshot.ai</a></div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-kimi-key" placeholder="sk-…" oninput="markKeyDirty('kimi-key')"><button class="key-eye" onclick="toggleKeyVis('key-kimi-key',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-kimi-key"></div>
+          </div>
+        </div>
+
         <!-- Cursor AI -->
         <div class="stab-group">
           <div class="stab-group-title">Cursor AI</div>
@@ -3911,6 +3921,7 @@ select option {
           <option value="anthropic">Anthropic</option>
           <option value="openai">OpenAI</option>
           <option value="google">Google</option>
+          <option value="kimi">Kimi (Moonshot AI)</option>
         </select>
       </div>
       <div class="field" style="margin-bottom:0">
@@ -4099,6 +4110,11 @@ function populateModels() {
       { v:'gemini-2.5-flash', l:'Gemini 2.5 Flash' },
       { v:'gemini-2.0-flash', l:'Gemini 2.0 Flash' },
       { v:'gemini-1.5-pro',   l:'Gemini 1.5 Pro' },
+    ],
+    kimi: [
+      { v:'kimi-k2',          l:'Kimi K2 — Flagship' },
+      { v:'kimi-k2-thinking', l:'Kimi K2 Thinking — Reasoning' },
+      { v:'kimi-k2.5',        l:'Kimi K2.5 — Latest' },
     ],
   };
   const models = modelSets[curProvider] || modelSets.anthropic;
@@ -4554,6 +4570,11 @@ function renderModelCards(provider, currentModel) {
       { id:'gemini-2.0-flash',          name:'Gemini 2.0 Flash', desc:'Efficient and quick. Great for real-time tasks.',    badges:[{l:'Fast',c:'mb-fast'},{l:'Efficient',c:''}] },
       { id:'gemini-1.5-pro',            name:'Gemini 1.5 Pro',   desc:'Proven Gemini 1.5 model. Strong general capability.',badges:[{l:'Reliable',c:'mb-balance'},{l:'Stable',c:''}] },
       { id:'gemini-1.5-flash',          name:'Gemini 1.5 Flash', desc:'Lightweight 1.5. Fast responses at low cost.',       badges:[{l:'Fast',c:'mb-fast'},{l:'Low cost',c:''}] },
+    ],
+    kimi: [
+      { id:'kimi-k2',          name:'Kimi K2',           desc:'Flagship model — 256K context, agentic tasks', badges:[{l:'Flagship',c:'badge-powerful'},{l:'256K',c:'badge-balanced'}] },
+      { id:'kimi-k2-thinking', name:'Kimi K2 Thinking',  desc:'Extended reasoning with chain-of-thought',     badges:[{l:'Reasoning',c:'badge-powerful'},{l:'CoT',c:'badge-balanced'}] },
+      { id:'kimi-k2.5',        name:'Kimi K2.5',         desc:'Latest generation — improved performance',     badges:[{l:'Latest',c:'badge-fast'},{l:'256K',c:'badge-balanced'}] },
     ],
   };
 
@@ -5576,6 +5597,7 @@ const KEY_MAP = [
   { id: 'icloud-app-password',  path: 'integrations.icloud.app_password' },
   { id: 'weather-key',          path: 'integrations.weather.api_key' },
   { id: 'weather-city',         path: 'integrations.weather.default_city' },
+  { id: 'kimi-key',             path: 'providers.kimi.api_key' },
 ];
 
 async function loadKeyVault() {
