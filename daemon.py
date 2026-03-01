@@ -2556,12 +2556,19 @@ Escalate to CORTEX only when cross-domain synthesis is required.
         if p == "/memory/reset":
             confirm = b.get("confirm")
             if not confirm: self.out({"error": "confirm required"}, 400); return
+            import shutil, time as _time
+            backup_path = FORGE_CFG / f"forge_backup_{int(_time.time())}.db"
+            try:
+                shutil.copy2(FORGE_CFG / "forge.db", backup_path)
+                log.info(f"Memory backup created: {backup_path}")
+            except Exception as e:
+                log.warning(f"Backup failed before memory reset: {e}")
             c = _db()
             c.execute("DELETE FROM memory")
             c.execute("DELETE FROM learnings")
             c.commit(); c.close()
             log.info("Memory + learnings tables cleared via dashboard")
-            self.out({"success": True, "message": "Memory cleared"}); return
+            self.out({"success": True, "message": "Memory cleared", "backup": str(backup_path)}); return
 
         # ── Danger Zone: Clear All Tasks ────────────────────────────────
         if p == "/tasks/clear":
