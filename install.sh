@@ -166,7 +166,7 @@ for choice in $PROVIDER_CHOICE; do
       ask "Gemini API key: "
       read -rs GEMINI_API_KEY; echo ""
       PRIMARY_PROVIDER="google"
-      PRIMARY_MODEL="gemini-2.0-flash"
+      PRIMARY_MODEL="gemini-2.5-pro"
       ;;
   esac
 done
