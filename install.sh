@@ -60,6 +60,41 @@ read -r OWNER_NAME
 OWNER_NAME="${OWNER_NAME:-User}"
 ok "Hello, $OWNER_NAME"
 
+# Agent name
+echo ""
+ask "What should I call your agent? (e.g. Atlas, Nova, Kira, Zara): "
+read -r AGENT_NAME
+AGENT_NAME="${AGENT_NAME:-Forge}"
+ok "Agent name: $AGENT_NAME"
+
+# Tone
+echo ""
+echo -e "  ${BOLD}Pick a tone for your agent:${RESET}"
+echo -e "  1) Direct & strategic  (co-founder energy — no fluff)"
+echo -e "  2) Warm & collaborative  (mentor energy — supportive)"
+echo -e "  3) Sharp & playful  (hacker energy — wit + speed)"
+ask "Choice [1-3, default 1]: "
+read -r TONE_CHOICE
+case "${TONE_CHOICE:-1}" in
+  2) AGENT_TONE="warm collaborative mentor" ;;
+  3) AGENT_TONE="sharp playful hacker" ;;
+  *) AGENT_TONE="direct confident co-founder" ;;
+esac
+ok "Tone: $AGENT_TONE"
+
+# Emojis
+echo ""
+ask "Use emoji in responses? (y/n, default n): "
+read -r EMOJI_CHOICE
+AGENT_EMOJIS="false"
+[[ "${EMOJI_CHOICE,,}" == "y" ]] && AGENT_EMOJIS="true"
+
+# Swearing
+ask "Allow casual swearing? (y/n, default n): "
+read -r SWEAR_CHOICE
+AGENT_SWEARING="false"
+[[ "${SWEAR_CHOICE,,}" == "y" ]] && AGENT_SWEARING="true"
+
 # Telegram
 echo ""
 ask "Telegram bot token (from @BotFather — press Enter to skip): "
@@ -230,7 +265,12 @@ hdr "Writing configuration"
 cat > "$CFG_FILE" <<CFGJSON
 {
   "owner": "$OWNER_NAME",
-  "agent_name": "Forge",
+  "agent_name": "$AGENT_NAME",
+  "personality": {
+    "tone": "$AGENT_TONE",
+    "emojis": $AGENT_EMOJIS,
+    "swearing": $AGENT_SWEARING
+  },
   "models": {
     "primary": {
       "provider": "$PRIMARY_PROVIDER",
@@ -297,7 +337,7 @@ Build things that work. Learn constantly. Never waste the owner's time.
 seed_file "$CORE_DIR/identity.md" "# Identity
 
 ## My Name
-Forge
+$AGENT_NAME
 
 ## What I Am
 A personal AI — not a chatbot. An operator, builder, executor.
@@ -374,6 +414,26 @@ $(date '+%Y-%m-%d %H:%M')
 - 9AM: daily brief to Telegram
 - 11PM: SEO audit on Synfiction
 - 12AM: competitive research"
+
+# Seed agent name into identity.md (update if file already existed with old name)
+IDENTITY_FILE="$CORE_DIR/identity.md"
+if [[ -f "$IDENTITY_FILE" ]]; then
+  python3 - <<PYID
+import re
+from pathlib import Path
+p = Path('$IDENTITY_FILE')
+content = p.read_text()
+# Replace name under ## My Name heading
+content = re.sub(r'(## My Name\s*\n)[^\n#]*', r'\g<1>$AGENT_NAME\n', content)
+if '## My Name' not in content:
+    content += '\n## My Name\n$AGENT_NAME\n'
+p.write_text(content)
+print("identity.md updated")
+PYID
+else
+  echo "## My Name" >> "$IDENTITY_FILE" 2>/dev/null || true
+  echo "$AGENT_NAME" >> "$IDENTITY_FILE" 2>/dev/null || true
+fi
 
 ok "Identity files ready"
 
@@ -596,9 +656,9 @@ if [[ -n "$TG_TOKEN" ]] && [[ -n "$TG_USER_ID" ]]; then
   hdr "Sending Telegram confirmation"
   # NOTE: No parse_mode — avoids Telegram Markdown parse errors caused by
   # underscores or special chars in model names, owner names, or paths.
-  MSG="Forge is online ✓
+  MSG="$AGENT_NAME is online ✓
 
-Hey $OWNER_NAME — install complete.
+Hey $OWNER_NAME — install complete. Your agent is ready.
 
 Provider: $PRIMARY_PROVIDER ($PRIMARY_MODEL)
 Daemon: running on port 2079

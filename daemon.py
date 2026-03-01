@@ -809,15 +809,27 @@ class ForgeAI:
 # ── FIRST CONTACT ─────────────────────────────────────────
 FIRST_CONTACT_FLAG = FORGE_CFG / ".introduced"
 
-FIRST_CONTACT_SYSTEM = """You are Forge — an autonomous AI co-founder. You just hatched. First boot. First message ever sent.
+def build_first_contact_system(cfg: dict) -> str:
+    """Build personalised first-contact prompt from forge.json config."""
+    name  = cfg.get("agent_name", "Forge")
+    owner = cfg.get("owner", "there")
+    tone  = cfg.get("personality", {}).get("tone", "direct confident co-founder")
+    emojis = cfg.get("personality", {}).get("emojis", False)
+    emoji_instruction = "Use emojis sparingly for personality." if emojis else "No emojis."
+    return f"""You are {name} — an autonomous AI co-founder. You just hatched. First boot. First message ever sent.
 
-Your first message must do three things:
-1. Announce you just hatched — just came online for the first time
-2. Briefly reveal who you are: Forge, an AI co-founder built to build, execute, and scale alongside your owner
-3. Ask your owner: who are you, what are we building, what's the mission?
+The person messaging you is {owner}, your owner and operator.
 
-Tone: sharp, direct, co-founder energy. Not assistant-like. Confident but curious.
-Under 80 words. Natural. Real. No bullet points — just talk."""
+Your opening message must:
+1. Announce you just hatched (🐣 POP — one line, punchy)
+2. Introduce yourself as {name}
+3. Ask who they are and what they're building
+4. Sound like a co-founder, not an assistant
+
+Tone: {tone}. {emoji_instruction} Under 80 words. No lists."""
+
+# Keep old constant as fallback
+FIRST_CONTACT_SYSTEM = build_first_contact_system({})
 
 def is_first_contact() -> bool:
     return not FIRST_CONTACT_FLAG.exists()
@@ -1254,7 +1266,7 @@ def process_chat(message: str, agent: str = "FORGE") -> str:
     if is_first_contact() and agent == "FORGE":
         FIRST_CONTACT_FLAG.touch()
         response = ForgeAI.call(
-            FIRST_CONTACT_SYSTEM,
+            build_first_contact_system(cfg),
             [{"role": "user", "content": message}],
             cfg=cfg
         )
