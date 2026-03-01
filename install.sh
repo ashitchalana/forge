@@ -87,13 +87,13 @@ echo ""
 ask "Use emoji in responses? (y/n, default n): "
 read -r EMOJI_CHOICE
 AGENT_EMOJIS="false"
-[[ "${EMOJI_CHOICE,,}" == "y" ]] && AGENT_EMOJIS="true"
+[[ "$(echo "$EMOJI_CHOICE" | tr '[:upper:]' '[:lower:]')" == "y" ]] && AGENT_EMOJIS="true"
 
 # Swearing
 ask "Allow casual swearing? (y/n, default n): "
 read -r SWEAR_CHOICE
 AGENT_SWEARING="false"
-[[ "${SWEAR_CHOICE,,}" == "y" ]] && AGENT_SWEARING="true"
+[[ "$(echo "$SWEAR_CHOICE" | tr '[:upper:]' '[:lower:]')" == "y" ]] && AGENT_SWEARING="true"
 
 # Telegram
 echo ""
