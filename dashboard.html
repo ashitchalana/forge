@@ -673,101 +673,7 @@ body::before {
   --chat-accent-rgb:  139, 92, 246;
 }
 
-/* VISHVAKARMA — CTO / Engineering / Teal */
-#view-chat[data-agent="vishvakarma"] {
-  --chat-accent:      #0d9488;
-  --chat-accent-rgb:  13, 148, 136;
-  --chat-bg:          rgba(13, 148, 136, 0.04);
-  --chat-header-tint: rgba(13, 148, 136, 0.06);
-  --chat-input-bg:    rgba(13, 148, 136, 0.03);
-}
-[data-theme="dark"] #view-chat[data-agent="vishvakarma"] {
-  --chat-accent:      #14b8a6;
-  --chat-accent-rgb:  20, 184, 166;
-  --chat-bg:          rgba(20, 184, 166, 0.07);
-  --chat-header-tint: rgba(20, 184, 166, 0.09);
-  --chat-input-bg:    rgba(20, 184, 166, 0.05);
-}
-
-/* SOPHIA — CMO / Creative / Rose */
-#view-chat[data-agent="sophia"] {
-  --chat-accent:      #e11d48;
-  --chat-accent-rgb:  225, 29, 72;
-  --chat-bg:          rgba(225, 29, 72, 0.04);
-  --chat-header-tint: rgba(225, 29, 72, 0.06);
-  --chat-input-bg:    rgba(225, 29, 72, 0.03);
-}
-[data-theme="dark"] #view-chat[data-agent="sophia"] {
-  --chat-accent:      #f43f5e;
-  --chat-accent-rgb:  244, 63, 94;
-  --chat-bg:          rgba(244, 63, 94, 0.07);
-  --chat-header-tint: rgba(244, 63, 94, 0.09);
-  --chat-input-bg:    rgba(244, 63, 94, 0.05);
-}
-
-/* LAKSHMI — CFO / Wealth / Deep Gold */
-#view-chat[data-agent="lakshmi"] {
-  --chat-accent:      #c9a227;
-  --chat-accent-rgb:  201, 162, 39;
-  --chat-bg:          rgba(201, 162, 39, 0.05);
-  --chat-header-tint: rgba(201, 162, 39, 0.07);
-  --chat-input-bg:    rgba(201, 162, 39, 0.03);
-}
-[data-theme="dark"] #view-chat[data-agent="lakshmi"] {
-  --chat-accent:      #f0c040;
-  --chat-accent-rgb:  240, 192, 64;
-  --chat-bg:          rgba(240, 192, 64, 0.07);
-  --chat-header-tint: rgba(240, 192, 64, 0.09);
-  --chat-input-bg:    rgba(240, 192, 64, 0.05);
-}
-
-/* ATHENA — Research / Intel / Indigo */
-#view-chat[data-agent="athena"] {
-  --chat-accent:      #4338ca;
-  --chat-accent-rgb:  67, 56, 202;
-  --chat-bg:          rgba(67, 56, 202, 0.04);
-  --chat-header-tint: rgba(67, 56, 202, 0.06);
-  --chat-input-bg:    rgba(67, 56, 202, 0.03);
-}
-[data-theme="dark"] #view-chat[data-agent="athena"] {
-  --chat-accent:      #818cf8;
-  --chat-accent-rgb:  129, 140, 248;
-  --chat-bg:          rgba(129, 140, 248, 0.07);
-  --chat-header-tint: rgba(129, 140, 248, 0.09);
-  --chat-input-bg:    rgba(129, 140, 248, 0.05);
-}
-
-/* HERMES — Sales / Momentum / Vivid Orange */
-#view-chat[data-agent="hermes"] {
-  --chat-accent:      #ea580c;
-  --chat-accent-rgb:  234, 88, 12;
-  --chat-bg:          rgba(234, 88, 12, 0.04);
-  --chat-header-tint: rgba(234, 88, 12, 0.06);
-  --chat-input-bg:    rgba(234, 88, 12, 0.03);
-}
-[data-theme="dark"] #view-chat[data-agent="hermes"] {
-  --chat-accent:      #f97316;
-  --chat-accent-rgb:  249, 115, 22;
-  --chat-bg:          rgba(249, 115, 22, 0.07);
-  --chat-header-tint: rgba(249, 115, 22, 0.09);
-  --chat-input-bg:    rgba(249, 115, 22, 0.05);
-}
-
-/* PROMETHEUS — Revenue / Fire / Crimson */
-#view-chat[data-agent="prometheus"] {
-  --chat-accent:      #b91c1c;
-  --chat-accent-rgb:  185, 28, 28;
-  --chat-bg:          rgba(185, 28, 28, 0.04);
-  --chat-header-tint: rgba(185, 28, 28, 0.06);
-  --chat-input-bg:    rgba(185, 28, 28, 0.03);
-}
-[data-theme="dark"] #view-chat[data-agent="prometheus"] {
-  --chat-accent:      #ef4444;
-  --chat-accent-rgb:  239, 68, 68;
-  --chat-bg:          rgba(239, 68, 68, 0.07);
-  --chat-header-tint: rgba(239, 68, 68, 0.09);
-  --chat-input-bg:    rgba(239, 68, 68, 0.05);
-}
+/* Agent chat colours are applied dynamically via JS — see applyAgentChatColor() */
 
 /* Send icon SVG */
 .send-icon { width:15px; height:15px; }
@@ -4147,7 +4053,7 @@ async function loadAgents() {
     const taskCount = mcTasks.filter(t => ['pending','in_progress','running'].includes(t.status) && (t.assignee||t.agent) === a.name).length;
     const pct = Math.min((taskCount / 5) * 100, 100);
     const barColor = taskCount === 0 ? 'var(--green)' : taskCount <= 2 ? 'var(--amber)' : 'var(--red)';
-    const accentColor = a.color || 'var(--accent)';
+    const accentColor = a.color || agentColor(a.name || '');
     const emoji = a.emoji || '🤖';
     return `<button class="agent-item" id="ag-${a.name}" onclick="selectAgent('${a.name}',this)">
       <div style="width:28px;height:28px;border-radius:8px;background:${accentColor}22;border:1px solid ${accentColor}44;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">${emoji}</div>
@@ -4163,9 +4069,33 @@ async function loadAgents() {
   if (document.getElementById('view-agents')?.classList.contains('visible')) loadAgentsView();
 }
 
+// ── Dynamic agent colour from name hash — works for any agent name ──
+function agentColor(name) {
+  const palette = [
+    '#0d9488','#e11d48','#c9a227','#4338ca','#ea580c','#b91c1c',
+    '#7c3aed','#0369a1','#16a34a','#db2777','#d97706','#0891b2'
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff;
+  return name === 'FORGE' ? '#6366f1' : palette[Math.abs(hash) % palette.length];
+}
+
+function applyAgentChatColor(name) {
+  const col = agentColor(name);
+  const hex = col.replace('#','');
+  const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+  const el = document.getElementById('view-chat');
+  el.style.setProperty('--chat-accent', col);
+  el.style.setProperty('--chat-accent-rgb', `${r}, ${g}, ${b}`);
+  el.style.setProperty('--chat-bg', `rgba(${r},${g},${b},0.04)`);
+  el.style.setProperty('--chat-header-tint', `rgba(${r},${g},${b},0.06)`);
+  el.style.setProperty('--chat-input-bg', `rgba(${r},${g},${b},0.03)`);
+}
+
 function selectAgent(name, btn) {
   curAgent = name;
   document.getElementById('view-chat').dataset.agent = name.toLowerCase();
+  applyAgentChatColor(name);
   document.querySelectorAll('.agent-item').forEach(b => b.classList.remove('active'));
   const el = document.getElementById('ag-' + name);
   if (el) el.classList.add('active');
@@ -4838,7 +4768,7 @@ function renderMcAgentGrid() {
     const statusLabel = { idle:'Idle', working:'Active', busy:'Busy' }[status];
     const pct = Math.min((count / 5) * 100, 100);
     const barColor = status === 'idle' ? 'var(--green)' : status === 'working' ? 'var(--amber)' : 'var(--red)';
-    const accentColor = a.color || '#6366f1';
+    const accentColor = a.color || agentColor(a.name || '');
     const emoji = a.emoji || '🤖';
     const domain = a.domain || a.role || 'Agent';
     return `<div class="mc-agent-card" style="animation-delay:${i*0.06}s;border-color:${accentColor}33" onclick="selectAgent('${a.name}',document.getElementById('ag-${a.name}'))">

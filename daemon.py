@@ -373,7 +373,8 @@ WORKSPACE: {FORGE_WS}/
 Save everything there. Tell owner exactly where.
 """
 
-    # Single cap already applied above — no double trimming
+    # Only include agents section if agents actually exist — prevents orchestrator behaviour on blank installs
+    agents_block = f"━━━ ACTIVE AGENTS ━━━\n{agent_lines}" if agents else ""
 
     return f"""You are {name} — a personal AGI.
 
@@ -400,10 +401,7 @@ You are not an assistant. You are an operator, builder, executor.
 {god_block}
 ━━━ RECENT LEARNINGS ━━━
 {learning_lines}
-
-━━━ ACTIVE AGENTS ━━━
-{agent_lines}
-
+{agents_block}
 ━━━ WHO I WORK FOR ━━━
 {user or "See identity.md"}
 
