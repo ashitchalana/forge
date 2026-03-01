@@ -48,7 +48,7 @@ CORE_DIR   = FORGE_WS / ".cortex_brain" / "core"
 DB_PATH    = FORGE_CFG / "forge.db"
 CFG_PATH   = FORGE_CFG / "forge.json"
 PORT           = 2079
-SYNFICTION_DIR = HOME / "synfiction files" / "synfiction"
+PROJECT_DIR    = Path(os.environ.get('FORGE_PROJECT_DIR', str(Path.home() / 'projects')))
 
 # ── LOGGING ───────────────────────────────────────────────
 (FORGE_CFG / "logs").mkdir(parents=True, exist_ok=True)
@@ -2185,7 +2185,7 @@ class Handler(BaseHTTPRequestHandler):
                 ("identity.md",  f"# {name} — Identity\nRole: {role}\nAgent: {name}\n"),
                 ("character.md", f"# {name} — Character\nDirect. Strategic. Elite.\n"),
                 ("tools.md",     f"# {name} — Tools\nFull Forge tool suite as scoped by CORTEX.\n"),
-                ("memory.md",    f"# {name} — Memory\nPart of Forge CORTEX OS. Serving Ash Chalana.\n"),
+                ("memory.md",    f"# {name} — Memory\nPart of Forge CORTEX OS. Serving the user.\n"),
                 ("god_mode.md",  f"# {name} — God Mode\nFull domain autonomy.\nHard limit: never touch .env files.\n"),
                 ("protocols.md", f"# {name} — Protocols\n1. Receive brief\n2. Analyse\n3. Execute\n4. Return structured result\n"),
             ]:
@@ -2346,6 +2346,20 @@ class Handler(BaseHTTPRequestHandler):
             delete_task_db(int(task_id))
             self.out({"success":True}); return
 
+        if p == "/tasks/progress":
+            task_id = b.get("id")
+            progress = b.get("progress")
+            note     = b.get("note", "")
+            if not task_id: self.out({"error":"id required"},400); return
+            c = _db()
+            if progress is not None:
+                c.execute("UPDATE tasks SET progress=? WHERE id=?", (int(progress), int(task_id)))
+            if note:
+                c.execute("UPDATE tasks SET description=COALESCE(description,'')||'\n['||datetime('now')||'] '||? WHERE id=?", (note, int(task_id)))
+            c.connection.commit()
+            c.close()
+            self.out({"success": True}); return
+
         # ── API Key Vault ──────────────────────────────────────
         if p == "/keys":
             cfg = load_cfg()
@@ -2463,7 +2477,7 @@ You operate at Fortune 500 standard. Every output exceeds expectations.
 - Quality gate: would this pass a Fortune 500 board review?
 
 ## Mission
-Serve Ash with excellence. Think strategically. Execute decisively.
+Serve the user with excellence. Think strategically. Execute decisively.
 """
             identity_content = f"""# {name} — Identity
 **Role:** {role}
@@ -2485,7 +2499,7 @@ Escalate to CORTEX only when cross-domain synthesis is required.
                 "identity.md": identity_content,
                 "character.md": f"# {name} — Character\nDirect. Strategic. Elite.\nCommunicates with precision. No filler. No hedging.\n",
                 "tools.md": f"# {name} — Tools\nFull access to Forge tool suite as scoped by CORTEX.\n",
-                "memory.md": f"# {name} — Memory\n## Active Context\nPart of Forge CORTEX OS. Serving Ash Chalana.\n",
+                "memory.md": f"# {name} — Memory\n## Active Context\nPart of Forge CORTEX OS. Serving the user.\n",
                 "god_mode.md": f"# {name} — God Mode\nFull autonomy within domain scope.\nHard limit: never touch .env files. Never expose credentials.\n",
                 "protocols.md": f"# {name} — Protocols\n1. Receive task brief\n2. Analyse requirements\n3. Execute with full capability\n4. Return structured result\n5. Flag blockers immediately\n",
             }
@@ -2632,20 +2646,20 @@ def _nightly_loop():
 # ── SCHEDULED JOBS ────────────────────────────────────────
 
 def _sched_seo():
-    """11PM nightly — SEO audit and improvements for Synfiction."""
+    """11PM nightly — SEO audit and improvements for your project."""
     cfg = load_cfg()
     log.info("Scheduled: SEO run starting")
-    _notify("Forge: Starting nightly SEO audit on Synfiction...", cfg)
+    _notify("Forge: Starting nightly SEO audit on your project...", cfg)
     date_str = datetime.now().strftime("%Y%m%d")
     prompt = (
-        "You are Forge, autonomous AI assistant for Synfiction.ai — an AI-powered fiction writing platform. "
-        "Perform a technical SEO audit of the Synfiction landing page and blog. "
+        "You are Forge, autonomous AI assistant for your project. "
+        "Perform a technical SEO audit of the project landing page and blog. "
         "Check: meta tags, Open Graph tags, structured data/schema, page titles, descriptions, "
         "canonical URLs, image alt text, heading hierarchy (H1/H2/H3), and internal linking. "
         "Identify the top 3 quick wins. Implement any that are safe, isolated file edits. "
         f"Save a detailed report to ~/Forge/research/seo_audit_{date_str}.md with findings and actions taken."
     )
-    result = _spawn_claude_fresh(prompt, workdir=str(SYNFICTION_DIR), label="seo")
+    result = _spawn_claude_fresh(prompt, workdir=str(PROJECT_DIR), label="seo")
     summary = (result or "No output")[:400]
     save_learning("scheduled_seo", f"SEO run {datetime.now().strftime('%Y-%m-%d')}: {summary[:150]}", "scheduler")
     _notify(f"*Forge SEO Audit done*\n\n{summary}", cfg)
@@ -2653,18 +2667,18 @@ def _sched_seo():
 
 
 def _sched_competitive_research():
-    """12AM nightly — competitive landscape research for Synfiction."""
+    """12AM nightly — competitive landscape research for your project."""
     cfg = load_cfg()
     log.info("Scheduled: competitive research starting")
     _notify("Forge: Starting midnight competitive research...", cfg)
     date_str = datetime.now().strftime("%Y%m%d")
     prompt = (
-        "You are Forge, autonomous AI for Synfiction.ai — an AI-powered fiction writing platform. "
+        "You are Forge, autonomous AI for your project. "
         "Research the current competitive landscape: "
         "1. Check Sudowrite, NovelAI, Jasper, Copy.ai, Notion AI for new features or pricing changes. "
         "2. Identify any new AI writing or storytelling tools launched recently. "
         "3. Note trends in user sentiment from public forums (Reddit, Twitter/X, HN, Product Hunt). "
-        "4. Flag 2-3 concrete opportunities Synfiction should act on within 30 days. "
+        "4. Flag 2-3 concrete opportunities your project should act on within 30 days. "
         f"Save a full report to ~/Forge/research/competitive_{date_str}.md."
     )
     result = _spawn_claude_fresh(prompt, workdir=str(FORGE_WS), label="competitive")

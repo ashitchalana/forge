@@ -163,6 +163,21 @@ const gateway = http.createServer(async (req, res) => {
     return;
   }
 
+  // GET /api/spawn-templates — generic agent archetypes for new installs
+  if (url.pathname === "/api/spawn-templates" && method === "GET") {
+    const SPAWN_TEMPLATES = [
+      { name: "ENGINEER",   role: "Senior Engineer",       domain: "Code · Architecture · Infrastructure",        color: "#14b8a6", emoji: "🏗️" },
+      { name: "CREATIVE",   role: "Creative Director",     domain: "Brand · Content · Design · Campaigns",        color: "#ec4899", emoji: "🎨" },
+      { name: "STRATEGIST", role: "Growth Strategist",     domain: "Revenue · Pricing · Financial Modelling",     color: "#f0c040", emoji: "💰" },
+      { name: "ANALYST",    role: "Research Analyst",      domain: "Market Intel · Competitive · Deep Analysis",  color: "#818cf8", emoji: "🔬" },
+      { name: "SALES",      role: "Head of Sales",         domain: "Outreach · Pitches · Pipeline · Closes",      color: "#f97316", emoji: "⚡" },
+      { name: "GROWTH",     role: "Autonomous Growth",     domain: "Opportunities · Monetisation · Hacks",        color: "#ef4444", emoji: "🔥" },
+    ];
+    res.writeHead(200, {"Content-Type":"application/json"});
+    res.end(JSON.stringify(SPAWN_TEMPLATES));
+    return;
+  }
+
   // POST /api/spawn — create new agent workspace
   if (url.pathname === "/api/spawn" && method === "POST") {
     let body = "";
@@ -175,7 +190,7 @@ const gateway = http.createServer(async (req, res) => {
         const agentDir  = path.join(FORGE_CFG, "agents", safeName.toLowerCase());
         fs.mkdirSync(path.join(agentDir, "subagents"), { recursive: true });
         // Write minimal soul.md
-        const soul = `# Soul — ${safeName} / ${role}\n\nI am ${safeName}. ${role}.\n\nI operate within the Forge multi-agent network.\nI report to CORTEX. I execute with precision.\n\n## GOD MODE: ACTIVE\nReports to CORTEX. Never directly to Ash.\n`;
+        const soul = `# Soul — ${safeName} / ${role}\n\nI am ${safeName}. ${role}.\n\nI operate within the Forge multi-agent network.\nI report to CORTEX. I execute with precision.\n\n## GOD MODE: ACTIVE\nReports to CORTEX. Never directly to the user.\n`;
         fs.writeFileSync(path.join(agentDir, "soul.md"),      soul);
         fs.writeFileSync(path.join(agentDir, "identity.md"),  `# Identity — ${safeName}\nName: ${safeName}\nRole: ${role}\nModel: ${model||"claude-sonnet-4-6"}\nReports to: CORTEX\n`);
         fs.writeFileSync(path.join(agentDir, "memory.md"),    `# Memory — ${safeName}\n\n> Active working memory. Updated per task.\n\n## Last Task\nNone yet.\n`);
@@ -488,7 +503,7 @@ async function handleTelegram(msg) {
     const cfg    = loadCfg();
     const status = await daemonGet("/status");
     const tasks  = await daemonGet("/tasks");
-    const owner  = cfg.owner || "Ash";
+    const owner  = cfg.owner || "User";
     const model  = cfg.active_model || status.primary_model || "—";
     const soul   = cfg.soul ? (cfg.soul.length > 120 ? cfg.soul.slice(0, 120) + "…" : cfg.soul) : "Ready.";
     const done   = Array.isArray(tasks) ? tasks.filter(t => t.status === "completed").length : (status.tasks || 0);
@@ -601,7 +616,7 @@ async function handleTelegram(msg) {
     const auditPrompt = `You are Forge running a FORENSIC AUDIT. Check:
 1. Recent task completion rate and any stalled tasks in ~/.forge/forge.db
 2. Memory integrity — any duplicates or outdated entries
-3. Synfiction codebase at ~/synfiction files/synfiction/ — any obvious issues or tech debt worth flagging
+3. your project codebase at ~/projects/ — any obvious issues or tech debt worth flagging
 4. Forge brain files — soul, identity, character alignment check at ~/Forge/.cortex_brain/core/
 
 Output a concise audit report with RAG status (Red/Amber/Green) per area. Max 300 words. Telegram format using *BOLD* not ## headings.`;
@@ -623,8 +638,8 @@ Output a concise audit report with RAG status (Red/Amber/Green) per area. Max 30
     const empirePrompt = `You are Forge in EMPIRE MODE — CMO + CFO combined. Conduct a comprehensive analysis:
 
 1. AI video generation market: current size, growth rate, key players (Runway, Sora, Pika, Kling, Luma)
-2. Synfiction.ai positioning: where does it sit vs competitors?
-3. Top 3 revenue opportunities Ash should act on in the next 90 days
+2. Your project positioning: where does it sit vs competitors?
+3. Top 3 revenue opportunities the user should act on in the next 90 days
 4. Pricing benchmarks across comparable platforms
 5. One strategic recommendation: the single highest-leverage move right now
 
@@ -682,7 +697,7 @@ Deliver a Fortune 500 quality research brief:
 1. Executive summary (2-3 sentences)
 2. Key findings (5 bullet points, data-driven where possible)
 3. Market/competitive landscape overview
-4. Implications for Ash / Synfiction.ai
+4. Implications for the user / your project
 5. Recommended next actions (top 3, prioritised)
 
 Be specific, cite numbers and names where known. Max 450 words. *BOLD* headers, professional executive tone.`;
@@ -853,7 +868,7 @@ ${directive}
 }
 
 /**
- * CORTEX quality gate — reviews all agent outputs before presenting to Ash
+ * CORTEX quality gate — reviews all agent outputs before presenting to the user
  */
 async function qualityGate(directive, agentResults) {
   const resultsText = agentResults
@@ -876,7 +891,7 @@ ${resultsText}
 
 First line must be: GATE: PASS or GATE: PARTIAL
 Then blank line.
-Then your synthesis — this is what Ash sees.
+Then your synthesis — this is what the user sees.
 
 Synthesis requirements:
 - Lead with the strategic insight, not a summary of what agents said

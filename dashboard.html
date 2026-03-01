@@ -2535,6 +2535,9 @@ select option {
   transition: border-color .18s, box-shadow .18s;
 }
 .field select:hover, .alarm-field select:hover, .tmf select:hover { border-color: var(--bd2); }
+.protocol-banner { background: rgba(109,40,217,0.08); border-left: 3px solid var(--acc); padding: 8px 22px; font-size: 11px; color: var(--tx3); font-family: var(--font-m); flex-shrink: 0; }
+.protocol-banner code { color: var(--acc); font-family: var(--font-m); }
+.protocol-banner strong { color: var(--tx2); }
 </style>
 </head>
 <body data-theme="light">
@@ -2672,6 +2675,9 @@ select option {
           <span style="font-size:10px;font-family:var(--font-m);color:var(--tx4)" id="mc-model-badge"></span>
           <button class="btn btn-primary" onclick="openNewTaskModal()">+ New Task</button>
         </div>
+      </div>
+      <div class="protocol-banner">
+        ⚡ Agents must call <code>forge-task progress</code> on every significant step. Dashboard updates are <strong>mandatory</strong>.
       </div>
       <!-- Hidden usage elements kept for JS compatibility -->
       <span id="usage-model" style="display:none"></span>
@@ -3274,8 +3280,8 @@ select option {
     <div class="view" id="view-heartbeat">
       <div class="view-head">
         <div>
-          <div class="view-title">Heartbeat</div>
-          <div class="view-sub">System health — checks every 30 minutes</div>
+          <div class="view-title">❤️ Heartbeat — The Lifeblood of Forge</div>
+          <div class="view-sub">The Heartbeat is the lifeblood of Forge. Every 30 minutes, it checks system vitals, confirms the pulse is strong, and records the result. If the heartbeat flatlines — Forge goes dark. Keep it beating.</div>
         </div>
       </div>
       <div class="hb-chart-wrap">
@@ -3286,7 +3292,7 @@ select option {
           </div>
           <div class="hb-stat-card">
             <div class="hb-stat-val" id="hb-total-val">—</div>
-            <div class="hb-stat-lbl">Total checks</div>
+            <div class="hb-stat-lbl">Pulse Count</div>
           </div>
           <div class="hb-stat-card">
             <div class="hb-stat-val amber" id="hb-warn-val">—</div>
@@ -3297,9 +3303,9 @@ select option {
           <div class="hb-chart-title">Status over time (last 48 checks)</div>
           <svg class="hb-svg-chart" id="hb-svg" viewBox="0 0 800 120" preserveAspectRatio="none"></svg>
           <div class="hb-chart-row">
-            <div class="hb-chart-legend"><div class="hb-chart-legend-dot" style="background:var(--green)"></div>OK</div>
-            <div class="hb-chart-legend"><div class="hb-chart-legend-dot" style="background:var(--amber)"></div>Warning</div>
-            <div class="hb-chart-legend"><div class="hb-chart-legend-dot" style="background:var(--red)"></div>Error</div>
+            <div class="hb-chart-legend"><div class="hb-chart-legend-dot" style="background:var(--green)"></div>Beating</div>
+            <div class="hb-chart-legend"><div class="hb-chart-legend-dot" style="background:var(--amber)"></div>Weak Pulse</div>
+            <div class="hb-chart-legend"><div class="hb-chart-legend-dot" style="background:var(--red)"></div>Flatline</div>
           </div>
         </div>
         <div class="hb-chart-card">
@@ -3471,8 +3477,8 @@ select option {
       <div class="stab-pane" id="stab-heartbeat">
         <div class="stab-hero">
           <div class="stab-hero-text">
-            <div class="stab-title">Heartbeat</div>
-            <div class="stab-sub">Autonomous health monitoring every 30 minutes</div>
+            <div class="stab-title">❤️ Heartbeat — The Lifeblood of Forge</div>
+            <div class="stab-sub">Autonomous health monitoring. The heartbeat runs every 30 minutes — non-negotiable. This is what keeps Forge alive.</div>
           </div>
           <span class="stab-last-saved" id="hb-next-label">Next: —</span>
         </div>
@@ -3481,6 +3487,10 @@ select option {
           <div class="stab-row">
             <div><div class="stab-row-key">Enabled</div><div class="stab-row-desc">Run health checks on a schedule</div></div>
             <button class="toggle" id="hb-toggle" onclick="toggleHeartbeat('enabled')"></button>
+          </div>
+          <div class="stab-row">
+            <div><div class="stab-row-key">Interval</div><div class="stab-row-desc">The heartbeat runs every 30 minutes — non-negotiable. This is what keeps Forge alive.</div></div>
+            <span class="badge badge-ok" style="font-size:10px">30-min interval</span>
           </div>
           <div class="stab-row">
             <div><div class="stab-row-key">Notify via Telegram</div><div class="stab-row-desc">Push alerts to your bot on issues</div></div>
@@ -4407,7 +4417,7 @@ async function loadHeartbeats() {
           return `<div class="hb-recent-row">
             <div class="hb-recent-status">
               <div class="hb-recent-dot" style="background:${dotColor}"></div>
-              ${h.status || 'ok'}${notes ? ` — <span style="color:var(--tx2);font-weight:400">${notes}</span>` : ''}
+              ${h.status === 'ok' ? 'Beating' : h.status === 'warn' ? 'Weak Pulse' : h.status === 'error' ? 'Flatline' : 'Beating'}${notes ? ` — <span style="color:var(--tx2);font-weight:400">${notes}</span>` : ''}
             </div>
             <div class="hb-recent-time">${(h.timestamp||'').slice(0,16).replace('T',' ')}</div>
           </div>`;
@@ -4601,8 +4611,9 @@ function renderHeartbeatTimeline(heartbeats) {
     const hb = heartbeats[i];
     if (hb) {
       const cls = hb.status === 'ok' ? 'ok' : hb.status === 'warn' ? 'warn' : 'error';
+      const clsLabel = hb.status === 'ok' ? 'Beating' : hb.status === 'warn' ? 'Weak Pulse' : 'Flatline';
       const t = (hb.timestamp || '').slice(0, 16);
-      dots.push(`<div class="hb-timeline-dot ${cls}" title="${cls} · ${t}"></div>`);
+      dots.push(`<div class="hb-timeline-dot ${cls}" title="${clsLabel} · ${t}"></div>`);
     } else {
       dots.push(`<div class="hb-timeline-dot empty" title="No data"></div>`);
     }
