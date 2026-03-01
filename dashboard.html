@@ -38,7 +38,7 @@
 .task-card:hover { border-color:var(--bd2); box-shadow:0 4px 16px var(--glow); transform:translateY(-1px); }
 .task-card.age-warn { box-shadow:0 0 0 1px rgba(217,119,6,.35), 0 0 10px rgba(217,119,6,.14); }
 .task-card-body { padding-bottom:12px; }
-.task-title { font-size:12px; font-weight:500; color:var(--tx); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:8px; }
+.task-title { font-size:10.5px; font-weight:500; color:var(--tx); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:6px; }
 .task-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .priority-badge { font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px; }
 .pb-p1 { background:rgba(220,38,38,.12);  color:#dc2626; }
@@ -64,9 +64,15 @@
 @keyframes progress-shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
 /* TASK MODAL FIELDS */
 .tmf { margin-bottom:14px; }
-.tmf label { font-size:10px; font-weight:600; color:var(--tx3); display:block; margin-bottom:5px; text-transform:uppercase; letter-spacing:.05em; }
-.tmf input,.tmf select,.tmf textarea { width:100%; background:var(--bg2); border:1px solid var(--bd); border-radius:6px; padding:7px 10px; font-size:12px; color:var(--tx); font-family:var(--font-b); box-sizing:border-box; }
+.tmf label { font-size:9.5px; font-weight:600; color:var(--tx3); display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:.08em; }
+.tmf input,.tmf select,.tmf textarea { width:100%; background:var(--bg2); border:1px solid var(--bd); border-radius:7px; padding:9px 12px; font-size:12.5px; color:var(--tx); font-family:var(--font-b); box-sizing:border-box; transition:border-color .18s; }
+.tmf input:focus,.tmf select:focus,.tmf textarea:focus { outline:none; border-color:var(--acc); }
 .tmf textarea { resize:vertical; min-height:56px; }
+/* MODAL HEADER */
+.modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:20px; }
+.modal-header-left { display:flex; flex-direction:column; gap:3px; flex:1; }
+.modal-close { width:28px; height:28px; border:none; background:var(--bg3); color:var(--tx3); border-radius:7px; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s,color .15s; }
+.modal-close:hover { background:rgba(220,38,38,.12); color:#dc2626; }
 .slider-row { display:flex; align-items:center; gap:10px; }
 .slider-row input[type=range] { flex:1; accent-color:var(--acc); }
 .slider-val { font-size:12px; color:var(--tx2); min-width:32px; text-align:right; }
@@ -1343,13 +1349,13 @@ body::before {
 .field label {
   font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: .1em;
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--tx3);
   display: block;
   margin-bottom: 6px;
 }
-.field input, .field select {
+.field input, .field select, .field textarea {
   width: 100%;
   background: var(--bg2);
   border: 1px solid var(--bd);
@@ -1359,9 +1365,11 @@ body::before {
   font-family: var(--font-b);
   font-size: 12.5px;
   transition: border-color .18s;
+  box-sizing: border-box;
 }
-.field input:focus, .field select:focus { outline: none; border-color: var(--acc); }
-.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+.field textarea { resize: vertical; min-height: 60px; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--acc); }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 
 /* ── BUTTONS ── */
 .btn {
@@ -1411,8 +1419,8 @@ body::before {
 /* ── MEMORY VIEW — PREMIUM ── */
 .mem-stats-bar {
   display: flex;
-  gap: 1px;
-  padding: 0 24px 0;
+  gap: 0;
+  padding: 0;
   margin-bottom: 0;
   border-bottom: 1px solid var(--bd);
   background: var(--bg2);
@@ -1497,38 +1505,60 @@ body::before {
 .mem-chip:hover { border-color: var(--acc); color: var(--acc); }
 .mem-chip.active { background: var(--acc); border-color: var(--acc); color: #fff; box-shadow: 0 2px 8px var(--glow2); }
 .memory-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 12px;
-  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
   overflow-y: auto;
   align-content: start;
 }
 .memory-item {
-  background: rgba(255,255,255,0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--bd);
-  border-radius: 12px;
-  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--bd);
+  padding: 14px 24px;
   cursor: default;
-  transition: var(--transition-smooth);
+  transition: background .15s;
   position: relative;
-  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
 }
-[data-theme="dark"] .memory-item { background: rgba(13,11,26,0.7); }
-.memory-item::before {
+.memory-item:last-child { border-bottom: none; }
+[data-theme="dark"] .memory-item { background: transparent; }
+.memory-item::before { display: none; }
+.memory-item:hover { background: var(--bg2); }
+.memory-cat-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.memory-icon-col {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--bd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 13px;
+}
+.memory-content-col { flex: 1; min-width: 0; }
+.memory-ts {
+  font-size: 9px;
+  color: var(--tx4);
+  font-family: var(--font-m);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.memory-ts::before {
   content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: var(--acc-gradient);
-  opacity: 0;
-  transition: opacity 0.2s;
+  display: inline-block;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--bd2);
 }
-.memory-item:hover { border-color: var(--bd2); box-shadow: var(--sh3); transform: translateY(-1px); }
-.memory-item:hover::before { opacity: 1; }
-.memory-cat-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .memory-cat {
   font-family: var(--font-m);
   font-size: 9px;
@@ -1547,22 +1577,6 @@ body::before {
 .mc-general     { background: rgba(107,114,128,.12);color: #6b7280; }
 .mc-default     { background: var(--bg3); color: var(--tx4); }
 .memory-text { font-size: 12px; color: var(--tx2); line-height: 1.6; }
-.memory-ts {
-  font-size: 9px;
-  color: var(--tx4);
-  font-family: var(--font-m);
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.memory-ts::before {
-  content: '';
-  display: inline-block;
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: var(--bd2);
-}
 
 /* Misc */
 .no-data { padding: 40px; text-align: center; color: var(--tx4); font-size: 12px; }
@@ -1826,9 +1840,11 @@ body::before {
   border-bottom: 1px solid var(--bd);
   background: var(--sur);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   gap: 10px;
 }
+.mem-filters { display: none !important; }
 .mem-search-wrap {
   display: flex;
   align-items: center;
@@ -1972,6 +1988,115 @@ body::before {
   box-shadow: var(--sh3) !important;
 }
 
+/* ── API Key Vault ── */
+.key-vault-group { margin-bottom: 20px; }
+.key-vault-group-title {
+  font-size: 9px; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--tx4); margin-bottom: 10px;
+}
+.key-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--bd);
+}
+.key-row:last-child { border-bottom: none; }
+.key-row-label { font-size: 11.5px; color: var(--tx2); font-weight: 500; white-space: nowrap; line-height: 1.3; }
+.key-row-desc  { font-size: 9.5px; color: var(--tx4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.key-input-wrap { flex: 1; position: relative; min-width: 0; }
+.key-input {
+  width: 100%; background: var(--bg2); border: 1px solid var(--bd);
+  border-radius: 6px; padding: 7px 34px 7px 10px; font-size: 12px;
+  font-family: var(--font-m); color: var(--tx1); outline: none;
+  box-sizing: border-box; transition: border-color .15s;
+}
+.key-input:focus { border-color: var(--acc); }
+.key-eye {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--tx4);
+  line-height: 1; padding: 4px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .15s, background .15s;
+}
+.key-eye:hover { color: var(--acc); background: var(--glow); }
+.key-save-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); flex-shrink: 0; opacity: 0;
+  transition: opacity .3s;
+}
+.key-save-dot.dirty { background: var(--amber); opacity: 1; }
+.key-save-dot.saved { background: var(--green); opacity: 1; }
+.custom-key-row {
+  display: flex; gap: 6px; align-items: center;
+  margin-bottom: 6px;
+}
+.custom-key-name {
+  width: 120px; background: var(--bg2); border: 1px solid var(--bd);
+  border-radius: 6px; padding: 6px 8px; font-size: 12px; color: var(--tx1);
+  font-family: var(--font-m); outline: none;
+}
+.custom-key-name:focus { border-color: var(--acc); }
+.btn-icon-del {
+  background: none; border: none; cursor: pointer;
+  color: var(--tx4); font-size: 14px; padding: 4px 6px;
+  border-radius: 4px; line-height: 1;
+}
+.btn-icon-del:hover { color: var(--red); background: rgba(239,68,68,.08); }
+
+/* ── Alarms ── */
+.alarm-list { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.alarm-card {
+  background: var(--bg2); border: 1px solid var(--bd); border-radius: 10px;
+  padding: 14px 16px; display: flex; align-items: center; gap: 14px;
+  transition: var(--transition-smooth);
+}
+.alarm-card:hover { border-color: var(--acc); box-shadow: var(--sh2); }
+.alarm-card.disabled { opacity: .5; }
+.alarm-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: rgba(var(--acc-rgb, 99,102,241),.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.alarm-info { flex: 1; min-width: 0; }
+.alarm-name { font-size: 13px; font-weight: 600; color: var(--tx1); }
+.alarm-sched { font-size: 11px; color: var(--acc); font-family: var(--font-m); margin-top: 2px; }
+.alarm-task  { font-size: 11px; color: var(--tx4); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+.alarm-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.alarm-toggle {
+  position: relative; width: 36px; height: 20px;
+  cursor: pointer; flex-shrink: 0;
+}
+.alarm-toggle input { opacity: 0; width: 0; height: 0; }
+.alarm-toggle-slider {
+  position: absolute; inset: 0; border-radius: 10px;
+  background: var(--bg3); transition: .2s;
+}
+.alarm-toggle input:checked + .alarm-toggle-slider { background: var(--acc); }
+.alarm-toggle-slider::before {
+  content: ''; position: absolute; width: 14px; height: 14px;
+  border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: .2s;
+}
+.alarm-toggle input:checked + .alarm-toggle-slider::before { transform: translateX(16px); }
+.alarm-empty {
+  text-align: center; padding: 60px 20px; color: var(--tx4);
+}
+.alarm-empty-icon { font-size: 32px; margin-bottom: 10px; opacity: .4; }
+.alarm-empty-text { font-size: 13px; }
+
+/* Alarm Modal */
+.alarm-modal-body { display: flex; flex-direction: column; gap: 14px; padding: 0 2px; }
+.alarm-field label { display: block; font-size: 9.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--tx3); margin-bottom: 6px; }
+.alarm-field input, .alarm-field select, .alarm-field textarea {
+  width: 100%; background: var(--bg2); border: 1px solid var(--bd);
+  border-radius: 7px; padding: 9px 12px; font-size: 12.5px; color: var(--tx);
+  font-family: var(--font-b); outline: none; box-sizing: border-box;
+  transition: border-color .18s;
+}
+.alarm-field input:focus, .alarm-field select:focus, .alarm-field textarea:focus { outline: none; border-color: var(--acc); }
+.alarm-field textarea { resize: vertical; min-height: 72px; }
+.alarm-field select option { background: var(--bg1); }
+.alarm-sched-row { display: flex; gap: 8px; }
+.alarm-sched-row .alarm-field { flex: 1; }
+
 /* View header premium */
 .view-head {
   padding: 20px 24px !important;
@@ -2096,7 +2221,7 @@ input:focus, textarea:focus, select:focus {
 }
 [data-theme="dark"] .task-card { background:rgba(15,13,28,0.55); }
 .task-card:hover { border-color:var(--bd2); box-shadow:var(--sh3); transform:translateY(-1px); }
-.task-title { font-size:12px; font-weight:500; color:var(--tx); line-height:1.45; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:0; }
+.task-title { font-size:10.5px; font-weight:500; color:var(--tx); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:0; }
 
 /* ── PRIORITY CHIPS (modal) ── */
 .priority-chips { display:flex; gap:6px; flex-wrap:wrap; }
@@ -2125,7 +2250,9 @@ input:focus, textarea:focus, select:focus {
   align-items: center;
   gap: 6px;
   margin-top: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  height: 18px;
 }
 .task-pri-dot {
   width: 6px; height: 6px;
@@ -2188,6 +2315,54 @@ input:focus, textarea:focus, select:focus {
   letter-spacing: 0.04em;
 }
 .empty-luxury-sub { font-size: 11px; color: var(--tx4); line-height: 1.6; max-width: 280px; }
+/* ── CUSTOM SELECT — PROFESSIONAL DROPDOWN ── */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23a09dc0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px !important;
+  cursor: pointer;
+}
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%237470a0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+select option {
+  background: var(--sur);
+  color: var(--tx);
+  font-family: var(--font-b);
+  font-size: 12px;
+  padding: 8px 12px;
+}
+/* Model selector premium */
+.model-selector {
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  padding: 6px 30px 6px 10px !important;
+  border-radius: 6px;
+  font-family: var(--font-m);
+  font-size: 10.5px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: border-color .18s;
+}
+.model-selector:hover { border-color: var(--bd2); }
+.model-selector:focus { border-color: var(--acc); box-shadow: 0 0 0 3px var(--glow); }
+/* Field selects — premium feel */
+.field select, .alarm-field select, .tmf select {
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  border-radius: 7px;
+  font-family: var(--font-b);
+  font-size: 12.5px;
+  transition: border-color .18s, box-shadow .18s;
+}
+.field select:hover, .alarm-field select:hover, .tmf select:hover { border-color: var(--bd2); }
 </style>
 </head>
 <body data-theme="light">
@@ -2278,6 +2453,14 @@ input:focus, textarea:focus, select:focus {
       <button class="sidebar-item" id="nav-channels" onclick="switchView('channels', this)">
         <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="4" cy="8" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="12" cy="12" r="2"/><path d="M6 7l4-2M6 9l4 2"/></svg>
         Channels
+      </button>
+      <button class="sidebar-item" id="nav-alarms" onclick="switchView('alarms', this)">
+        <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="5"/><path d="M8 7v2.5l1.5 1.5M5.5 1.5L3 4M10.5 1.5L13 4"/></svg>
+        Alarms
+      </button>
+      <button class="sidebar-item" id="nav-skills" onclick="switchView('skills', this)">
+        <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        Skills
       </button>
       <button class="sidebar-item" id="nav-settings" onclick="switchView('settings', this)">
         <svg class="sidebar-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M13.3 7.5h1V8a5 5 0 0 1-.4 2l-.9-.5c-.2.4-.4.7-.7 1l.5.9a5 5 0 0 1-1.4 1.4l-.9-.5a5 5 0 0 1-1 .7l.5.9A5 5 0 0 1 8 14h-.5v-1c-.7 0-1.4-.15-2-.4l-.5.9A5 5 0 0 1 3.6 12l.5-.9A5 5 0 0 1 3.4 10l-.9.5A5 5 0 0 1 2 8.5V8h1a6 6 0 0 1 0-1H2v-.5a5 5 0 0 1 .4-2l.9.5c.2-.4.4-.7.7-1l-.5-.9A5 5 0 0 1 5 1.6l.9.5A5 5 0 0 1 7 1.7V.8H8a5 5 0 0 1 2 .4l-.5.9c.4.2.7.4 1 .7l.9-.5a5 5 0 0 1 1.4 1.4l-.5.9c.3.6.5 1.3.5 2v.5h.5z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
@@ -2415,7 +2598,7 @@ input:focus, textarea:focus, select:focus {
             </div>
             <div>
               <div class="ch-rail-name">Discord</div>
-              <div class="ch-rail-sub">Webhook</div>
+              <div class="ch-rail-sub">Bot API</div>
             </div>
             <div class="ch-rail-dot" id="rail-dot-discord"></div>
           </button>
@@ -2428,6 +2611,36 @@ input:focus, textarea:focus, select:focus {
               <div class="ch-rail-sub">Twilio · Business API</div>
             </div>
             <div class="ch-rail-dot" id="rail-dot-whatsapp"></div>
+          </button>
+          <button class="ch-rail-item" onclick="selectChannel('slack',this)">
+            <div class="ch-rail-icon" style="background:rgba(74,21,75,.15)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(74,21,75,.85)"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>
+            </div>
+            <div>
+              <div class="ch-rail-name">Slack</div>
+              <div class="ch-rail-sub">Bot API</div>
+            </div>
+            <div class="ch-rail-dot" id="rail-dot-slack"></div>
+          </button>
+          <button class="ch-rail-item" onclick="selectChannel('gmail',this)">
+            <div class="ch-rail-icon" style="background:rgba(234,67,53,.12)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(234,67,53,.85)"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.907 1.528-1.147C21.69 2.28 24 3.434 24 5.457z"/></svg>
+            </div>
+            <div>
+              <div class="ch-rail-name">Gmail</div>
+              <div class="ch-rail-sub">App Password</div>
+            </div>
+            <div class="ch-rail-dot" id="rail-dot-gmail"></div>
+          </button>
+          <button class="ch-rail-item" onclick="selectChannel('icloud',this)">
+            <div class="ch-rail-icon" style="background:rgba(0,122,255,.12)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(0,122,255,.85)"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+            </div>
+            <div>
+              <div class="ch-rail-name">iCloud Mail</div>
+              <div class="ch-rail-sub">App Password</div>
+            </div>
+            <div class="ch-rail-dot" id="rail-dot-icloud"></div>
           </button>
         </div>
 
@@ -2482,18 +2695,27 @@ input:focus, textarea:focus, select:focus {
             </div>
             <div>
               <div class="ch-detail-name">Discord</div>
-              <div class="ch-detail-provider">Webhook · Server notifications</div>
+              <div class="ch-detail-provider">Bot API · Server notifications</div>
             </div>
             <div class="ch-detail-status">
               <div class="ch-status-dot" id="ch-dc-dot" style="background:var(--tx4);width:8px;height:8px;border-radius:50%"></div>
               <span id="ch-dc-status-label">Not configured</span>
+              <span class="badge" id="ch-dc-badge" style="margin-left:4px">—</span>
             </div>
           </div>
           <div class="ch-config-group">
-            <div class="ch-config-group-title">Credentials</div>
+            <div class="ch-config-group-title">Bot Credentials</div>
             <div class="ch-config-row">
-              <span class="ch-config-label">Webhook URL</span>
-              <input class="ch-input" type="password" id="ch-dc-webhook" placeholder="https://discord.com/api/webhooks/…">
+              <span class="ch-config-label">Bot Token</span>
+              <input class="ch-input" type="password" id="ch-dc-token" placeholder="Bot token from Discord Developer Portal">
+            </div>
+            <div class="ch-config-row">
+              <span class="ch-config-label">Server ID</span>
+              <input class="ch-input" type="text" id="ch-dc-guild" placeholder="Right-click server → Copy Server ID">
+            </div>
+            <div class="ch-config-row">
+              <span class="ch-config-label">Channel ID <span style="font-size:9px;color:var(--tx4);font-weight:400">(optional)</span></span>
+              <input class="ch-input" type="text" id="ch-dc-channel" placeholder="Right-click channel → Copy Channel ID">
             </div>
           </div>
           <div class="ch-config-group">
@@ -2502,8 +2724,11 @@ input:focus, textarea:focus, select:focus {
             <div class="ch-events-row"><div><div class="ch-event-label">Errors</div><div class="ch-event-desc">System errors and failures</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
           </div>
           <div class="ch-actions">
-            <button class="btn btn-ghost" onclick="testChannel('discord')">Test POST</button>
+            <button class="btn btn-ghost" onclick="testChannel('discord')">Test connection</button>
             <button class="btn btn-primary" onclick="saveChannel('discord')">Save</button>
+          </div>
+          <div class="ch-config-group" style="margin-top:16px">
+            <div class="ch-note">Enable Developer Mode in Discord (Settings → Advanced) to copy Server/Channel IDs. Bot must be invited to your server with <code style="font-family:var(--font-m);color:var(--acc)">Send Messages</code> permission.</div>
           </div>
         </div>
 
@@ -2554,6 +2779,273 @@ input:focus, textarea:focus, select:focus {
             <button class="btn btn-primary" onclick="saveChannel('whatsapp')">Save</button>
           </div>
         </div>
+        <!-- Slack panel -->
+        <div class="ch-detail" id="ch-panel-slack" style="display:none">
+          <div class="ch-detail-header">
+            <div class="ch-detail-icon" style="background:rgba(74,21,75,.15)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(74,21,75,.85)"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>
+            </div>
+            <div>
+              <div class="ch-detail-name">Slack</div>
+              <div class="ch-detail-provider">Bot API · Channel notifications</div>
+            </div>
+            <div class="ch-detail-status">
+              <div class="ch-status-dot" id="ch-sl-dot" style="background:var(--tx4);width:8px;height:8px;border-radius:50%"></div>
+              <span id="ch-sl-status-label">Not configured</span>
+              <span class="badge" id="ch-sl-badge" style="margin-left:4px">—</span>
+            </div>
+          </div>
+          <div class="ch-config-group">
+            <div class="ch-config-group-title">Credentials</div>
+            <div class="ch-config-row">
+              <span class="ch-config-label">Bot Token</span>
+              <input class="ch-input" type="password" id="ch-sl-token" placeholder="xoxb-…">
+            </div>
+            <div class="ch-config-row">
+              <span class="ch-config-label">Default Channel</span>
+              <input class="ch-input" type="text" id="ch-sl-channel" placeholder="#general or channel ID">
+            </div>
+          </div>
+          <div class="ch-config-group">
+            <div class="ch-config-group-title">Event Routing</div>
+            <div class="ch-events-row"><div><div class="ch-event-label">Task completed</div><div class="ch-event-desc">Post on task completion</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+            <div class="ch-events-row"><div><div class="ch-event-label">Errors</div><div class="ch-event-desc">System errors and failures</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+          </div>
+          <div class="ch-actions">
+            <button class="btn btn-ghost" onclick="testChannel('slack')">Test connection</button>
+            <button class="btn btn-primary" onclick="saveChannel('slack')">Save</button>
+          </div>
+          <div class="ch-config-group" style="margin-top:16px">
+            <div class="ch-note">Create a Slack App at <code style="font-family:var(--font-m);color:var(--acc)">api.slack.com/apps</code>, add <code style="font-family:var(--font-m);color:var(--acc)">chat:write</code> scope, install to workspace, copy the Bot User OAuth Token.</div>
+          </div>
+        </div>
+
+        <!-- Gmail panel -->
+        <div class="ch-detail" id="ch-panel-gmail" style="display:none">
+          <div class="ch-detail-header">
+            <div class="ch-detail-icon" style="background:rgba(234,67,53,.12)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(234,67,53,.85)"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.907 1.528-1.147C21.69 2.28 24 3.434 24 5.457z"/></svg>
+            </div>
+            <div>
+              <div class="ch-detail-name">Gmail</div>
+              <div class="ch-detail-provider">SMTP · App Password</div>
+            </div>
+            <div class="ch-detail-status">
+              <div class="ch-status-dot" id="ch-gm-dot" style="background:var(--tx4);width:8px;height:8px;border-radius:50%"></div>
+              <span id="ch-gm-status-label">Not configured</span>
+              <span class="badge" id="ch-gm-badge" style="margin-left:4px">—</span>
+            </div>
+          </div>
+          <div class="ch-config-group">
+            <div class="ch-config-group-title">Credentials</div>
+            <div class="ch-config-row">
+              <span class="ch-config-label">Gmail Address</span>
+              <input class="ch-input" type="email" id="ch-gm-email" placeholder="you@gmail.com">
+            </div>
+            <div class="ch-config-row">
+              <span class="ch-config-label">App Password</span>
+              <input class="ch-input" type="password" id="ch-gm-password" placeholder="16-character app password">
+            </div>
+          </div>
+          <div class="ch-actions">
+            <button class="btn btn-ghost" onclick="testChannel('gmail')">Send test email</button>
+            <button class="btn btn-primary" onclick="saveChannel('gmail')">Save</button>
+          </div>
+          <div class="ch-config-group" style="margin-top:16px">
+            <div class="ch-note">Enable 2FA on your Google account, then go to <code style="font-family:var(--font-m);color:var(--acc)">myaccount.google.com/apppasswords</code> to generate an App Password.</div>
+          </div>
+        </div>
+
+        <!-- iCloud Mail panel -->
+        <div class="ch-detail" id="ch-panel-icloud" style="display:none">
+          <div class="ch-detail-header">
+            <div class="ch-detail-icon" style="background:rgba(0,122,255,.12)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(0,122,255,.85)"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+            </div>
+            <div>
+              <div class="ch-detail-name">iCloud Mail</div>
+              <div class="ch-detail-provider">SMTP · App Password</div>
+            </div>
+            <div class="ch-detail-status">
+              <div class="ch-status-dot" id="ch-ic-dot" style="background:var(--tx4);width:8px;height:8px;border-radius:50%"></div>
+              <span id="ch-ic-status-label">Not configured</span>
+              <span class="badge" id="ch-ic-badge" style="margin-left:4px">—</span>
+            </div>
+          </div>
+          <div class="ch-config-group">
+            <div class="ch-config-group-title">Credentials</div>
+            <div class="ch-config-row">
+              <span class="ch-config-label">Apple ID (email)</span>
+              <input class="ch-input" type="email" id="ch-ic-email" placeholder="you@icloud.com">
+            </div>
+            <div class="ch-config-row">
+              <span class="ch-config-label">App Password</span>
+              <input class="ch-input" type="password" id="ch-ic-password" placeholder="App-specific password from appleid.apple.com">
+            </div>
+          </div>
+          <div class="ch-actions">
+            <button class="btn btn-ghost" onclick="testChannel('icloud')">Send test email</button>
+            <button class="btn btn-primary" onclick="saveChannel('icloud')">Save</button>
+          </div>
+          <div class="ch-config-group" style="margin-top:16px">
+            <div class="ch-note">Generate an App Password at <code style="font-family:var(--font-m);color:var(--acc)">appleid.apple.com → Sign-In and Security → App-Specific Passwords</code>.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ALARMS VIEW -->
+    <div class="view" id="view-alarms">
+      <div class="view-head">
+        <div>
+          <div class="view-title">Alarms</div>
+          <div class="view-sub">Schedule recurring tasks — Forge executes them on time, every time</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="alarms-count-badge" class="badge" style="display:none"></span>
+          <button class="btn btn-primary" onclick="openAlarmModal()">+ New Alarm</button>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto">
+        <div id="alarms-list" class="alarm-list"></div>
+      </div>
+    </div>
+
+    <!-- ALARM MODAL -->
+    <div class="overlay" id="alarm-modal" onclick="if(event.target===this)closeAlarmModal()">
+      <div class="modal" style="width:460px;max-width:96vw">
+        <div class="modal-header">
+          <div class="modal-header-left">
+            <div class="modal-title" id="alarm-modal-title">New Alarm</div>
+            <div class="modal-sub" style="margin-bottom:0">Schedule a recurring task for Forge</div>
+          </div>
+          <button class="modal-close" onclick="closeAlarmModal()">✕</button>
+        </div>
+        <div class="alarm-modal-body">
+          <input type="hidden" id="alarm-edit-id">
+          <div class="alarm-field">
+            <label>Alarm Name</label>
+            <input type="text" id="alarm-name" placeholder="e.g. Morning Briefing">
+          </div>
+          <div class="alarm-sched-row">
+            <div class="alarm-field">
+              <label>Frequency</label>
+              <select id="alarm-freq" onchange="updateAlarmCronPreview()">
+                <option value="daily">Daily</option>
+                <option value="weekdays">Weekdays only</option>
+                <option value="weekly">Weekly</option>
+                <option value="hourly">Every hour</option>
+                <option value="custom">Custom (cron)</option>
+              </select>
+            </div>
+            <div class="alarm-field" id="alarm-time-wrap">
+              <label>Time</label>
+              <input type="time" id="alarm-time" value="09:00" onchange="updateAlarmCronPreview()">
+            </div>
+            <div class="alarm-field" id="alarm-day-wrap" style="display:none">
+              <label>Day</label>
+              <select id="alarm-day" onchange="updateAlarmCronPreview()">
+                <option value="1">Monday</option><option value="2">Tuesday</option>
+                <option value="3">Wednesday</option><option value="4">Thursday</option>
+                <option value="5">Friday</option><option value="6">Saturday</option>
+                <option value="0">Sunday</option>
+              </select>
+            </div>
+          </div>
+          <div class="alarm-field" id="alarm-cron-wrap" style="display:none">
+            <label>Cron Expression</label>
+            <input type="text" id="alarm-cron" placeholder="0 9 * * *">
+          </div>
+          <div style="font-size:10.5px;color:var(--acc);font-family:var(--font-m)" id="alarm-cron-preview">Schedule: every day at 09:00</div>
+          <div class="alarm-field">
+            <label>Task / Prompt</label>
+            <textarea id="alarm-task" placeholder="What should Forge do when this alarm fires? e.g. 'Send me a morning briefing with today's top news and my calendar'"></textarea>
+          </div>
+          <div class="alarm-field">
+            <label>Output Channel</label>
+            <select id="alarm-channel">
+              <option value="telegram">Telegram</option>
+              <option value="chat">Dashboard Chat</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeAlarmModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitAlarm()">Save Alarm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKILLS VIEW -->
+    <div class="view" id="view-skills">
+      <div class="view-head">
+        <div>
+          <div class="view-title">Skills</div>
+          <div class="view-sub" id="skills-count-label">Forge's installed capabilities</div>
+        </div>
+        <button class="btn btn-primary" onclick="openSkillCreator()">+ New Skill</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:16px 20px">
+        <div id="skills-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
+      </div>
+    </div>
+
+    <!-- SKILL CREATOR MODAL -->
+    <div class="overlay" id="skill-creator-modal" onclick="if(event.target===this)closeSkillCreator()">
+      <div class="modal" style="width:600px;max-width:96vw">
+        <div class="modal-header">
+          <div class="modal-header-left">
+            <div class="modal-title">New Skill</div>
+            <div class="modal-sub" style="margin-bottom:0">Add a Python capability to Forge</div>
+          </div>
+          <button class="modal-close" onclick="closeSkillCreator()">✕</button>
+        </div>
+        <div class="field">
+          <label>Skill Name</label>
+          <input type="text" id="skill-name-input" placeholder="e.g. send_report, check_weather">
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <input type="text" id="skill-desc-input" placeholder="What does this skill do?">
+        </div>
+        <div class="field">
+          <label>What should this skill do?</label>
+          <textarea id="skill-behavior-input" style="min-height:80px;resize:vertical" placeholder="Describe what this skill should do in plain English. e.g. Check the weather for a given city and return a summary."></textarea>
+        </div>
+        <div class="field">
+          <label>Required Inputs <span style="text-transform:none;letter-spacing:0;font-weight:400;font-size:9px;color:var(--tx4)">comma-separated parameter names</span></label>
+          <input type="text" id="skill-params-input" placeholder="e.g. city, date — or leave blank if none">
+        </div>
+        <!-- code is generated automatically — hidden from user -->
+        <textarea id="skill-code-input" style="display:none" aria-hidden="true"></textarea>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeSkillCreator()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveNewSkill()">Save Skill</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKILL DETAIL MODAL -->
+    <div class="overlay" id="skill-detail-modal" onclick="if(event.target===this)closeOverlay('skill-detail-modal')">
+      <div class="modal" style="width:600px;max-width:96vw">
+        <div class="modal-header">
+          <div class="modal-header-left">
+            <div class="modal-title" id="sdm-title">Skill</div>
+            <div class="modal-sub" id="sdm-desc" style="margin-bottom:0">—</div>
+          </div>
+          <button class="modal-close" onclick="closeOverlay('skill-detail-modal')">✕</button>
+        </div>
+        <div class="field">
+          <label>File</label>
+          <div id="sdm-file" style="font-family:var(--font-m);font-size:11px;color:var(--tx3);padding:8px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--bd)">—</div>
+        </div>
+        <!-- code loaded for internal use, not shown to user -->
+        <textarea id="sdm-code" style="display:none" aria-hidden="true" readonly></textarea>
+        <div class="modal-actions" style="justify-content:space-between">
+          <button class="btn btn-ghost" style="color:var(--red)" id="sdm-delete-btn">Delete Skill</button>
+          <button class="btn btn-ghost" onclick="closeOverlay('skill-detail-modal')">Close</button>
+        </div>
       </div>
     </div>
 
@@ -2599,9 +3091,7 @@ input:focus, textarea:focus, select:focus {
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" style="flex-shrink:0;color:var(--tx4)"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10.5 10.5l3 3" stroke-linecap="round"/></svg>
           <input class="mem-search" id="mem-search" placeholder="Search memories and learnings…" oninput="filterMemory(this.value)">
         </div>
-        <div class="mem-filters" id="mem-filters">
-          <button class="mem-chip active" data-cat="all" onclick="filterMemoryByCategory('all',this)">All</button>
-        </div>
+        <div class="mem-filters" id="mem-filters" style="display:none"></div>
       </div>
       <div class="memory-list" id="memory-list">
         <div class="no-data">Loading memories…</div>
@@ -2680,6 +3170,10 @@ input:focus, textarea:focus, select:focus {
       <button class="settings-tab" onclick="switchSettingsTab(this,'integrations')">
         <svg class="stab-nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="4" cy="8" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="12" cy="12" r="2"/><path d="M6 7l4-2M6 9l4 2"/></svg>
         Connections
+      </button>
+      <button class="settings-tab" onclick="switchSettingsTab(this,'keys')">
+        <svg class="stab-nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="7" r="3"/><path d="M9 9.5l5 5M11 12l1.5 1.5"/><path d="M6 5v.5M4.5 6.5h.5"/></svg>
+        API Keys
       </button>
       <button class="settings-tab" onclick="switchSettingsTab(this,'system')">
         <svg class="stab-nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
@@ -2878,6 +3372,143 @@ input:focus, textarea:focus, select:focus {
         </div>
       </div>
 
+      <!-- API KEYS VAULT -->
+      <div class="stab-pane" id="stab-keys">
+        <div class="stab-hero">
+          <div class="stab-hero-text">
+            <div class="stab-title">API Key Vault</div>
+            <div class="stab-sub">Stored locally in forge.json — never transmitted externally</div>
+          </div>
+          <button class="btn btn-primary" style="font-size:11px" onclick="saveAllKeys()">Save All</button>
+        </div>
+
+        <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx4);margin:0 0 14px;padding:8px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:var(--acc);border-radius:2px;display:inline-block"></span>Communication</div>
+
+        <!-- Google / Gmail / Calendar -->
+        <div class="stab-group">
+          <div class="stab-group-title">Google (Gmail · Calendar · Drive)</div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">Client ID</div><div class="key-row-desc">OAuth client ID</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-google-client-id" placeholder="xxxxxxxx.apps.googleusercontent.com" oninput="markKeyDirty('google-client-id')"><button class="key-eye" onclick="toggleKeyVis('key-google-client-id',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-google-client-id"></div>
+          </div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">Client Secret</div><div class="key-row-desc">OAuth client secret</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-google-client-secret" placeholder="GOCSPX-…" oninput="markKeyDirty('google-client-secret')"><button class="key-eye" onclick="toggleKeyVis('key-google-client-secret',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-google-client-secret"></div>
+          </div>
+        </div>
+
+        <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx4);margin:24px 0 14px;padding:8px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:var(--acc);border-radius:2px;display:inline-block"></span>Development & Productivity</div>
+
+        <!-- GitHub -->
+        <div class="stab-group">
+          <div class="stab-group-title">GitHub</div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">Personal Token</div><div class="key-row-desc">repo, issues, PRs</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-github-token" placeholder="ghp_…" oninput="markKeyDirty('github-token')"><button class="key-eye" onclick="toggleKeyVis('key-github-token',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-github-token"></div>
+          </div>
+        </div>
+
+        <!-- Notion -->
+        <div class="stab-group">
+          <div class="stab-group-title">Notion</div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">Integration Token</div><div class="key-row-desc">Internal integration</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-notion-token" placeholder="secret_…" oninput="markKeyDirty('notion-token')"><button class="key-eye" onclick="toggleKeyVis('key-notion-token',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-notion-token"></div>
+          </div>
+        </div>
+
+        <!-- Slack -->
+        <div class="stab-group">
+          <div class="stab-group-title">Slack</div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">Bot Token</div><div class="key-row-desc">xoxb- bot token</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-slack-bot-token" placeholder="xoxb-…" oninput="markKeyDirty('slack-bot-token')"><button class="key-eye" onclick="toggleKeyVis('key-slack-bot-token',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-slack-bot-token"></div>
+          </div>
+        </div>
+
+        <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx4);margin:24px 0 14px;padding:8px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:var(--acc);border-radius:2px;display:inline-block"></span>Search & Intelligence</div>
+
+        <!-- Web Search -->
+        <div class="stab-group">
+          <div class="stab-group-title">Web Search (Serper)</div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">Serper API Key</div><div class="key-row-desc">serper.dev</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-serper-key" placeholder="xxxxxxxx" oninput="markKeyDirty('serper-key')"><button class="key-eye" onclick="toggleKeyVis('key-serper-key',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-serper-key"></div>
+          </div>
+        </div>
+
+        <!-- Brave Search -->
+        <div class="stab-group">
+          <div class="stab-group-title">Brave Search</div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">API Key</div><div class="key-row-desc">search.brave.com</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-brave-key" placeholder="BSA…" oninput="markKeyDirty('brave-key')"><button class="key-eye" onclick="toggleKeyVis('key-brave-key',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-brave-key"></div>
+          </div>
+        </div>
+
+        <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx4);margin:24px 0 14px;padding:8px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:var(--acc);border-radius:2px;display:inline-block"></span>AI Providers</div>
+
+        <!-- Cursor AI -->
+        <div class="stab-group">
+          <div class="stab-group-title">Cursor AI</div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">API Key</div><div class="key-row-desc">cursor.com API</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-cursor-key" placeholder="cursor-…" oninput="markKeyDirty('cursor-key')"><button class="key-eye" onclick="toggleKeyVis('key-cursor-key',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-cursor-key"></div>
+          </div>
+        </div>
+
+        <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx4);margin:24px 0 14px;padding:8px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:var(--acc);border-radius:2px;display:inline-block"></span>Utilities</div>
+
+        <!-- iCloud Mail -->
+        <div class="stab-group">
+          <div class="stab-group-title">iCloud Mail</div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">Apple ID</div><div class="key-row-desc">your@icloud.com</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="text" id="key-icloud-email" placeholder="you@icloud.com" oninput="markKeyDirty('icloud-email')"></div>
+            <div class="key-save-dot" id="dot-icloud-email"></div>
+          </div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">App Password</div><div class="key-row-desc">appleid.apple.com → Security</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-icloud-app-password" placeholder="xxxx-xxxx-xxxx-xxxx" oninput="markKeyDirty('icloud-app-password')"><button class="key-eye" onclick="toggleKeyVis('key-icloud-app-password',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-icloud-app-password"></div>
+          </div>
+        </div>
+
+        <!-- Weather -->
+        <div class="stab-group">
+          <div class="stab-group-title">Weather (OpenWeatherMap)</div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">API Key</div><div class="key-row-desc">openweathermap.org</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="password" id="key-weather-key" placeholder="abc123…" oninput="markKeyDirty('weather-key')"><button class="key-eye" onclick="toggleKeyVis('key-weather-key',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="key-save-dot" id="dot-weather-key"></div>
+          </div>
+          <div class="key-row">
+            <div style="width:168px;flex-shrink:0;min-width:0;overflow:hidden"><div class="key-row-label">Default City</div><div class="key-row-desc">Fallback location</div></div>
+            <div class="key-input-wrap"><input class="key-input" type="text" id="key-weather-city" placeholder="Melbourne" oninput="markKeyDirty('weather-city')"></div>
+            <div class="key-save-dot" id="dot-weather-city"></div>
+          </div>
+        </div>
+
+        <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx4);margin:24px 0 14px;padding:8px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:var(--acc);border-radius:2px;display:inline-block"></span>Custom</div>
+
+        <!-- Custom Keys -->
+        <div class="stab-group">
+          <div class="stab-group-title" style="display:flex;align-items:center;justify-content:space-between">
+            Custom Keys
+            <button class="btn btn-ghost" style="font-size:10px;height:24px;padding:0 8px" onclick="addCustomKeyRow()">+ Add</button>
+          </div>
+          <div id="custom-keys-list"></div>
+        </div>
+      </div>
+
       <!-- SYSTEM -->
       <div class="stab-pane" id="stab-system">
         <div class="stab-hero">
@@ -2974,25 +3605,25 @@ input:focus, textarea:focus, select:focus {
 </div><!-- end .layout -->
 
 <!-- TASK DETAIL MODAL -->
-<div class="overlay" id="task-detail-modal">
+<div class="overlay" id="task-detail-modal" onclick="if(event.target===this)closeOverlay('task-detail-modal')">
   <div class="modal" style="max-width:480px;width:100%">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
-      <div>
-        <div class="modal-title" style="margin-bottom:2px">Task Detail</div>
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-title">Task Detail</div>
         <div class="modal-sub" id="td-created-wrap" style="margin:0">Created: <span id="td-created">—</span></div>
       </div>
-      <div id="td-status-badge" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--bg3);color:var(--tx3);font-family:var(--font-m);margin-top:2px"></div>
+      <button class="modal-close" onclick="closeOverlay('task-detail-modal')">✕</button>
     </div>
-    <div class="tmf" style="margin-top:16px">
+    <div class="field">
       <label>Title</label>
-      <input id="td-title" placeholder="Task title" style="font-size:14px;font-weight:600">
+      <input id="td-title" placeholder="Task title" style="font-size:13px;font-weight:600">
     </div>
-    <div class="tmf">
+    <div class="field">
       <label>Description</label>
       <textarea id="td-description" placeholder="Details, context, notes…" style="min-height:72px"></textarea>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="tmf">
+      <div class="field" style="margin-bottom:0">
         <label>Priority</label>
         <div class="priority-chips" id="td-priority-chips">
           <div class="priority-chip" data-val="P1 Critical" onclick="selectPriorityChip(this)">Critical</div>
@@ -3002,45 +3633,50 @@ input:focus, textarea:focus, select:focus {
         </div>
         <input type="hidden" id="td-priority" value="P3 Normal">
       </div>
-      <div class="tmf">
-        <label>Status <span style="font-size:9px;color:var(--tx4);font-weight:400;text-transform:none;letter-spacing:0">(managed by Forge)</span></label>
-        <div id="td-status-display" style="padding:7px 11px;background:var(--bg3);border:1px solid var(--bd);border-radius:7px;font-size:12px;font-weight:500;color:var(--tx3);cursor:default;user-select:none">—</div>
+      <div class="field" style="margin-bottom:0">
+        <label>Status</label>
+        <div id="td-status-display" style="padding:9px 12px;background:var(--bg3);border:1px solid var(--bd);border-radius:7px;font-size:12px;font-weight:500;color:var(--tx3);cursor:default;user-select:none">—</div>
         <input type="hidden" id="td-status" value="pending">
       </div>
     </div>
-    <div class="tmf">
+    <div class="field" style="margin-top:14px">
       <label>Assignee</label>
       <div class="assignee-chips" id="td-assignee-chips"></div>
       <input type="hidden" id="td-assignee" value="FORGE">
     </div>
-    <div class="tmf">
-      <label>ETA</label>
+    <div class="field">
+      <label>ETA <span style="font-size:9px;color:var(--tx4);text-transform:none;letter-spacing:0;font-weight:400">optional</span></label>
       <input id="td-eta" type="datetime-local">
     </div>
-    <div class="modal-actions" style="justify-content:space-between;margin-top:20px">
+    <div class="modal-actions" style="justify-content:space-between">
       <button class="btn btn-ghost" style="color:var(--red)" onclick="deleteTaskDetail()">Delete</button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost" onclick="closeOverlay('task-detail-modal')">Cancel</button>
-        <button class="btn btn-primary" onclick="saveTaskDetail()">Save</button>
+        <button class="btn btn-primary" onclick="saveTaskDetail()">Save Changes</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- NEW TASK MODAL -->
-<div class="overlay" id="new-task-modal">
+<div class="overlay" id="new-task-modal" onclick="if(event.target===this)closeOverlay('new-task-modal')">
   <div class="modal" style="max-width:440px;width:100%">
-    <div class="modal-title">New Task</div>
-    <div class="modal-sub">Add a task to the backlog</div>
-    <div class="tmf">
-      <label>Title <span style="color:var(--red)">*</span></label>
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-title">New Task</div>
+        <div class="modal-sub" style="margin-bottom:0">Add a task to the backlog</div>
+      </div>
+      <button class="modal-close" onclick="closeOverlay('new-task-modal')">✕</button>
+    </div>
+    <div class="field">
+      <label>Title <span style="color:var(--red);text-transform:none;letter-spacing:0">*</span></label>
       <input id="nt-title" placeholder="What needs to be done?">
     </div>
-    <div class="tmf">
+    <div class="field">
       <label>Description</label>
       <textarea id="nt-description" placeholder="Optional details…"></textarea>
     </div>
-    <div class="tmf">
+    <div class="field">
       <label>Priority</label>
       <div class="priority-chips" id="nt-priority-chips">
         <div class="priority-chip" data-val="P1 Critical" onclick="selectPriorityChip(this)">Critical</div>
@@ -3050,13 +3686,13 @@ input:focus, textarea:focus, select:focus {
       </div>
       <input type="hidden" id="nt-priority" value="P3 Normal">
     </div>
-    <div class="tmf">
+    <div class="field">
       <label>Assignee</label>
       <div class="assignee-chips" id="nt-assignee-chips"></div>
       <input type="hidden" id="nt-assignee" value="FORGE">
     </div>
-    <div class="tmf">
-      <label>ETA</label>
+    <div class="field">
+      <label>ETA <span style="font-size:9px;color:var(--tx4);text-transform:none;letter-spacing:0;font-weight:400">optional</span></label>
       <input id="nt-eta" type="datetime-local">
     </div>
     <div class="modal-actions">
@@ -3079,39 +3715,46 @@ input:focus, textarea:focus, select:focus {
 </div>
 
 <!-- SPAWN MODAL -->
-<div class="overlay" id="spawn-modal">
+<div class="overlay" id="spawn-modal" onclick="if(event.target===this)closeOverlay('spawn-modal')">
   <div class="modal">
-    <div class="modal-title">New Agent</div>
-    <div class="modal-sub">Forge generates the system prompt automatically.</div>
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-title">Spawn Agent</div>
+        <div class="modal-sub" style="margin-bottom:0">Forge generates the system prompt automatically</div>
+      </div>
+      <button class="modal-close" onclick="closeOverlay('spawn-modal')">✕</button>
+    </div>
     <div class="field">
-      <label>Name</label>
-      <input id="spawn-name" placeholder="TITAN, ARIA, PRISM…">
+      <label>Agent Name</label>
+      <input id="spawn-name" placeholder="e.g. TITAN, ARIA, PRISM">
     </div>
     <div class="field">
       <label>Role</label>
-      <input id="spawn-role" placeholder="CTO, Content Strategist, Revenue Analyst…">
+      <input id="spawn-role" placeholder="e.g. CTO, Content Strategist, Revenue Analyst">
     </div>
-    <div class="field">
-      <label>Provider</label>
-      <select id="spawn-provider">
-        <option value="anthropic">Anthropic</option>
-        <option value="openai">OpenAI</option>
-        <option value="google">Google</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Model</label>
-      <select id="spawn-model">
-        <option value="claude-opus-4-6">Claude Opus 4</option>
-        <option value="claude-sonnet-4-6">Claude Sonnet 4</option>
-        <option value="claude-haiku-4-5-20251001">Claude Haiku 4</option>
-        <option value="gpt-4o">GPT-4o</option>
-        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-      </select>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field" style="margin-bottom:0">
+        <label>Provider</label>
+        <select id="spawn-provider">
+          <option value="anthropic">Anthropic</option>
+          <option value="openai">OpenAI</option>
+          <option value="google">Google</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Model</label>
+        <select id="spawn-model">
+          <option value="claude-sonnet-4-6">Claude Sonnet 4</option>
+          <option value="claude-opus-4-6">Claude Opus 4</option>
+          <option value="claude-haiku-4-5-20251001">Claude Haiku 4</option>
+          <option value="gpt-4o">GPT-4o</option>
+          <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+        </select>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeOverlay('spawn-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="spawnAgent()">Create Agent</button>
+      <button class="btn btn-primary" onclick="spawnAgent()">Spawn Agent</button>
     </div>
   </div>
 </div>
@@ -3299,9 +3942,10 @@ async function loadAgents() {
     const taskCount = mcTasks.filter(t => ['pending','in_progress','running'].includes(t.status) && (t.assignee||t.agent) === a.name).length;
     const pct = Math.min((taskCount / 5) * 100, 100);
     const barColor = taskCount === 0 ? 'var(--green)' : taskCount <= 2 ? 'var(--amber)' : 'var(--red)';
-    const dotColor = taskCount === 0 ? 'var(--green)' : taskCount <= 2 ? 'var(--amber)' : 'var(--red)';
+    const accentColor = a.color || 'var(--accent)';
+    const emoji = a.emoji || '🤖';
     return `<button class="agent-item" id="ag-${a.name}" onclick="selectAgent('${a.name}',this)">
-      <div class="agent-marker" style="background:${dotColor};box-shadow:0 0 5px ${dotColor}"></div>
+      <div style="width:28px;height:28px;border-radius:8px;background:${accentColor}22;border:1px solid ${accentColor}44;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">${emoji}</div>
       <div style="flex:1;min-width:0">
         <div class="agent-name">${a.name}</div>
         <div class="agent-role">${a.role||''}</div>
@@ -3411,7 +4055,9 @@ async function sendMessage() {
   try {
     const body = { message: text, agent: curAgent };
     if (curModel) body.model = curModel;
-    const result = await api('/chat', body);
+    // Route to agent-specific endpoint when a permanent agent is selected
+    const endpoint = (curAgent && curAgent !== 'FORGE') ? '/agent-chat' : '/chat';
+    const result = await api(endpoint, body);
     document.getElementById(tid)?.remove();
     const resp = result.response || 'Something went wrong.';
     container.innerHTML += renderMsg('assistant', resp, new Date().toISOString());
@@ -3452,7 +4098,7 @@ function switchView(name, btn) {
     vw.classList.add('visible');
   }
 
-  ['mission','chat','memory','heartbeat','channels','settings'].forEach(n => {
+  ['mission','chat','memory','heartbeat','channels','alarms','skills','settings'].forEach(n => {
     const nb = document.getElementById('nav-' + n);
     if (nb) nb.classList.remove('active');
   });
@@ -3464,13 +4110,16 @@ function switchView(name, btn) {
   if (name === 'settings')  { loadStatus(); updateSettingsStatusBadges(); loadSystemStats(); }
   if (name === 'mission')   loadMissionControl();
   if (name === 'channels')  loadChannelStatuses();
+  if (name === 'alarms')    loadAlarms();
+  if (name === 'skills')    loadSkillsView();
 }
 
 // ══════════════════════════════════════════
 //  HEARTBEAT
 // ══════════════════════════════════════════
 async function loadHeartbeats() {
-  const data = await api('/heartbeats').catch(()=>[]);
+  const raw = await api('/heartbeats').catch(()=>[]);
+  const data = Array.isArray(raw) ? raw : (Array.isArray(raw?.heartbeats) ? raw.heartbeats : (Array.isArray(raw?.data) ? raw.data : []));
   const recent = data.slice(0, 20);
   const total  = data.length;
   const warns  = data.filter(h => h.status === 'warn' || h.status === 'error').length;
@@ -3823,14 +4472,17 @@ async function loadAgentsView() {
 
   // Spawned agent cards
   const spawnedCards = (Array.isArray(agents) ? agents : []).map((a, i) => {
-    const col = avatarColors[(i + 1) % avatarColors.length];
+    const col = a.color || avatarColors[(i + 1) % avatarColors.length];
+    const emoji = a.emoji || '🤖';
+    const domain = a.domain || '';
     const id = `model-select-${a.name}`;
-    return `<div class="agent-detail-card">
+    return `<div class="agent-detail-card" style="border-color:${col}44">
       <div class="agent-detail-header">
-        <div class="agent-detail-avatar" style="background:${col}">${a.name.charAt(0)}</div>
+        <div class="agent-detail-avatar" style="background:${col}22;border:1px solid ${col}55;color:${col};font-size:18px">${emoji}</div>
         <div>
           <div class="agent-detail-name">${a.name}</div>
-          <div class="agent-detail-role">${a.role || 'Agent'}</div>
+          <div class="agent-detail-role" style="color:${col}">${a.role || 'Agent'}</div>
+          ${domain ? `<div style="font-size:9px;color:var(--tx4);margin-top:2px">${domain}</div>` : ''}
         </div>
       </div>
       <div style="font-size:10px;color:var(--tx4);margin-bottom:4px">Active model</div>
@@ -3839,6 +4491,9 @@ async function loadAgentsView() {
           ${modelOptions(a.model || mainModel)}
         </select>
         <button class="agent-model-save" onclick="saveAgentModel('${a.name}', document.getElementById('${id}').value, '${a.provider || mainProv}')">Save</button>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:6px">
+        <button class="btn btn-ghost" style="font-size:10px;padding:4px 10px;border-color:${col}55;color:${col}" onclick="selectAgent('${a.name}',null);switchView('chat')">Chat →</button>
       </div>
     </div>`;
   });
@@ -3915,25 +4570,32 @@ function renderMcAgentGrid() {
       if (marker) { marker.style.background = col; marker.style.boxShadow = `0 0 5px ${col}`; }
     }
   });
-  const allAgents = [{ name: document.getElementById('sidebar-agent-name')?.textContent || 'FORGE', role:'Master', model: curModel || 'claude-sonnet-4-6' }, ...agents];
+  const forgeEntry = { name: document.getElementById('sidebar-agent-name')?.textContent || 'FORGE', role:'Master Orchestrator', model: curModel || 'claude-sonnet-4-6', color:'#6366f1', emoji:'⚡', domain:'Orchestration · All Domains' };
+  const allAgents = [forgeEntry, ...agents];
   grid.innerHTML = allAgents.map((a, i) => {
     const count = taskCounts[a.name] || 0;
     const status = count === 0 ? 'idle' : count <= 2 ? 'working' : 'busy';
     const statusLabel = { idle:'Idle', working:'Active', busy:'Busy' }[status];
     const pct = Math.min((count / 5) * 100, 100);
     const barColor = status === 'idle' ? 'var(--green)' : status === 'working' ? 'var(--amber)' : 'var(--red)';
-    return `<div class="mc-agent-card" style="animation-delay:${i*0.06}s" onclick="selectAgent('${a.name}',document.getElementById('ag-${a.name}'))">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:12px;font-weight:600;color:var(--tx);letter-spacing:.01em">${a.name}</span>
+    const accentColor = a.color || '#6366f1';
+    const emoji = a.emoji || '🤖';
+    const domain = a.domain || a.role || 'Agent';
+    return `<div class="mc-agent-card" style="animation-delay:${i*0.06}s;border-color:${accentColor}33" onclick="selectAgent('${a.name}',document.getElementById('ag-${a.name}'))">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="width:30px;height:30px;border-radius:8px;background:${accentColor}22;border:1px solid ${accentColor}55;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${emoji}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:700;color:var(--tx);letter-spacing:.02em">${a.name}</div>
+          <div style="font-size:9px;color:${accentColor};font-weight:500;letter-spacing:.01em">${a.role||'Agent'}</div>
+        </div>
         <div class="mc-status-dot ${status}"></div>
       </div>
-      <div style="font-size:10px;color:var(--tx4);margin-bottom:10px;letter-spacing:0">${a.role||'Agent'}</div>
+      <div style="font-size:9px;color:var(--tx4);margin-bottom:10px;letter-spacing:0;line-height:1.4">${domain}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
         <span style="font-size:10px;color:var(--tx3)">${statusLabel}</span>
         <span style="font-size:9px;color:var(--tx4);font-family:var(--font-m)">${count}/5</span>
       </div>
-      <div class="task-progress-bar"><div class="task-progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
-      ${a.model ? `<div style="margin-top:8px"><span style="font-size:9px;background:var(--bg3);color:var(--tx3);padding:2px 7px;border-radius:4px;font-family:var(--font-m);letter-spacing:.02em">${a.model}</span></div>` : ''}
+      <div class="task-progress-bar"><div class="task-progress-fill" style="width:${pct}%;background:${accentColor}"></div></div>
     </div>`;
   }).join('') + `<div class="mc-agent-card mc-spawn-card" onclick="openOverlay('spawn-modal')">
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2v12M2 8h12"/></svg>
@@ -4046,15 +4708,6 @@ function openTaskDetail(taskId) {
     etaInput.title = isAgentAssigned ? 'ETA is set by the assigned agent' : '';
   }
   document.getElementById('td-created').textContent = task.created ? new Date(task.created).toLocaleString() : '—';
-  // Status badge
-  const badge = document.getElementById('td-status-badge');
-  if (badge) {
-    const s = task.status || 'pending';
-    const colors = { pending:'var(--tx4)', in_progress:'var(--amber)', completed:'var(--green)' };
-    const labels = { pending:'Backlog', in_progress:'In Progress', completed:'Completed' };
-    badge.style.color = colors[s] || 'var(--tx4)';
-    badge.textContent = labels[s] || s;
-  }
   // Build assignee chips
   buildAssigneeChips(task.assignee || 'FORGE');
   openOverlay('task-detail-modal');
@@ -4115,13 +4768,8 @@ function selectPriorityChip(el) {
 
 function updateProgressFromStatus() {
   const status = document.getElementById('td-status')?.value;
-  const badge = document.getElementById('td-status-badge');
   const statusLabels = { pending:'Backlog', in_progress:'In Progress', completed:'Completed' };
   const statusColors = { pending:'var(--tx4)', in_progress:'var(--amber)', completed:'var(--green)' };
-  if (badge) {
-    badge.style.color = statusColors[status] || 'var(--tx4)';
-    badge.textContent = statusLabels[status] || status;
-  }
   const display = document.getElementById('td-status-display');
   if (display) {
     display.textContent = statusLabels[status] || status;
@@ -4193,6 +4841,9 @@ const CMD_ACTIONS = [
   { icon:'◎', label:'Memory',           action: ()=>switchView('memory') },
   { icon:'◎', label:'Heartbeat',        action: ()=>switchView('heartbeat') },
   { icon:'◎', label:'Channels',         action: ()=>switchView('channels') },
+  { icon:'◎', label:'Alarms',           action: ()=>switchView('alarms') },
+  { icon:'◎', label:'New Alarm',        action: ()=>{ switchView('alarms'); openAlarmModal(); } },
+  { icon:'◎', label:'API Key Vault',    action: ()=>{ switchView('settings'); setTimeout(()=>{ const t=document.querySelector('.settings-tab[onclick*="keys"]'); if(t) switchSettingsTab(t,'keys'); },100); } },
   { icon:'◎', label:'Settings',         action: ()=>switchView('settings') },
   { icon:'⊕', label:'Spawn Agent',      action: ()=>openOverlay('spawn-modal') },
   { icon:'◑', label:'Toggle Theme',     action: toggleTheme },
@@ -4269,6 +4920,7 @@ function switchSettingsTab(btn, section) {
     if (lbl) lbl.textContent = curModel || '—';
   }
   if (section === 'heartbeat') loadHeartbeats();
+  if (section === 'keys') loadKeyVault();
 }
 
 function selectModel(card) {
@@ -4359,14 +5011,26 @@ function getCatClass(cat) {
 
 function renderMemoryList(data) {
   const list = document.getElementById('memory-list');
+  const iconMap = {
+    synfiction: '🎬', code: '⌨', system: '⚙', user: '👤', forge: '⚡', general: '💡'
+  };
   list.innerHTML = data.length
-    ? data.map(m => `<div class="memory-item">
-        <div class="memory-cat-row">
-          <span class="memory-cat ${getCatClass(m.category)}">${m.category || 'general'}</span>
-        </div>
-        <div class="memory-text">${(m.insight||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-        <div class="memory-ts">${(m.timestamp||'').slice(0,16)}</div>
-      </div>`).join('')
+    ? data.map(m => {
+        const catIcon = iconMap[(m.category||'').toLowerCase()] || '📌';
+        const catClass = getCatClass(m.category);
+        const ts = (m.timestamp||'').slice(0,16);
+        const xss = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return `<div class="memory-item">
+          <div class="memory-icon-col">${catIcon}</div>
+          <div class="memory-content-col">
+            <div class="memory-cat-row">
+              <span class="memory-cat ${catClass}">${m.category||'general'}</span>
+            </div>
+            <div class="memory-text">${xss(m.insight||m.content||m.text||'')}</div>
+            <div class="memory-ts">${ts}</div>
+          </div>
+        </div>`;
+      }).join('')
     : '<div class="no-data">No learnings match. Forge learns from every conversation.</div>';
 }
 
@@ -4392,7 +5056,7 @@ function filterMemoryByCategory(cat, btn) {
 function selectChannel(id, btn) {
   document.querySelectorAll('.ch-rail-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['telegram','discord','whatsapp'].forEach(c => {
+  ['telegram','discord','whatsapp','slack','gmail','icloud'].forEach(c => {
     const p = document.getElementById('ch-panel-' + c);
     if (!p) return;
     p.style.display = (c === id) ? 'flex' : 'none';
@@ -4401,16 +5065,23 @@ function selectChannel(id, btn) {
 }
 
 async function loadChannelStatuses() {
-  // Use /config — only endpoint that actually returns channels data
   const cfg = await api('/config').catch(()=>({}));
-  const tgCfg = cfg.channels?.telegram || {};
-  const dcCfg = cfg.channels?.discord  || {};
-  const waCfg = cfg.channels?.whatsapp || {};
+  const ch  = cfg.channels || {};
+  const tgCfg = ch.telegram || {};
+  const dcCfg = ch.discord  || {};
+  const waCfg = ch.whatsapp || {};
+  const slCfg = ch.slack    || {};
+  const gmCfg = ch.gmail    || {};
+  const icCfg = ch.icloud   || {};
+  const ntCfg = ch.notion   || {};
 
-  // Telegram is configured if bot_token + user_id are present
   const tg = !!(tgCfg.bot_token && tgCfg.user_id);
-  const dc = !!(dcCfg.webhook_url || dcCfg.bot_token);
+  const dc = !!(dcCfg.bot_token && dcCfg.guild_id);
   const wa = !!(waCfg.sid && waCfg.token);
+  const sl = !!(slCfg.bot_token);
+  const gm = !!(gmCfg.email && gmCfg.password);
+  const ic = !!(icCfg.email && icCfg.password);
+  const nt = !!(ntCfg.token);
 
   function applyChannelStatus(dotId, lblId, badgeId, railId, active) {
     const dot   = document.getElementById(dotId);
@@ -4426,18 +5097,30 @@ async function loadChannelStatuses() {
   applyChannelStatus('ch-tg-dot','ch-tg-status-label','ch-tg-badge','rail-dot-telegram', tg);
   applyChannelStatus('ch-dc-dot','ch-dc-status-label','ch-dc-badge','rail-dot-discord',  dc);
   applyChannelStatus('ch-wa-dot','ch-wa-status-label','ch-wa-badge','rail-dot-whatsapp', wa);
+  applyChannelStatus('ch-sl-dot','ch-sl-status-label','ch-sl-badge','rail-dot-slack',    sl);
+  applyChannelStatus('ch-gm-dot','ch-gm-status-label','ch-gm-badge','rail-dot-gmail',   gm);
+  applyChannelStatus('ch-ic-dot','ch-ic-status-label','ch-ic-badge','rail-dot-icloud',  ic);
+  applyChannelStatus('ch-nt-dot','ch-nt-status-label','ch-nt-badge','rail-dot-notion',  nt);
 
-  // Pre-fill inputs with saved values (masked token shows as placeholder)
-  const tgTokenEl = document.getElementById('ch-tg-token');
-  const tgChatEl  = document.getElementById('ch-tg-chat');
-  if (tgTokenEl && tgCfg.bot_token) tgTokenEl.placeholder = tgCfg.bot_token; // masked ••••••
-  if (tgChatEl  && tgCfg.user_id)   tgChatEl.value  = tgCfg.user_id;
-  const dcWebhookEl = document.getElementById('ch-dc-webhook');
-  if (dcWebhookEl && dcCfg.webhook_url) dcWebhookEl.placeholder = dcCfg.webhook_url;
+  // Pre-fill saved values
+  const prefill = (id, val, mask) => { const el = document.getElementById(id); if (el && val) { if (mask) el.placeholder = val; else el.value = val; } };
+  prefill('ch-tg-token', tgCfg.bot_token, true);
+  prefill('ch-tg-chat',  tgCfg.user_id,   false);
+  prefill('ch-dc-token', dcCfg.bot_token, true);
+  prefill('ch-dc-guild', dcCfg.guild_id,  false);
+  prefill('ch-dc-channel', dcCfg.channel_id, false);
+  prefill('ch-sl-token', slCfg.bot_token, true);
+  prefill('ch-sl-channel', slCfg.channel, false);
+  prefill('ch-gm-email', gmCfg.email, false);
+  prefill('ch-gm-password', gmCfg.password, true);
+  prefill('ch-ic-email', icCfg.email, false);
+  prefill('ch-ic-password', icCfg.password, true);
+  prefill('ch-nt-token', ntCfg.token, true);
 }
 
 async function testChannel(type) {
   const btn = event.target;
+  const orig = btn.textContent;
   btn.textContent = 'Testing…';
   btn.disabled = true;
   try {
@@ -4448,37 +5131,65 @@ async function testChannel(type) {
       const j = await r.json();
       btn.textContent = j.ok ? `✓ @${j.result.username}` : 'Invalid token';
     } else if (type === 'discord') {
-      const webhook = document.getElementById('ch-dc-webhook')?.value?.trim();
-      if (!webhook) throw new Error('Enter webhook URL first');
-      const r = await fetch(webhook);
-      btn.textContent = r.ok ? '✓ Webhook valid' : 'Invalid webhook';
+      const token = document.getElementById('ch-dc-token')?.value?.trim();
+      if (!token) throw new Error('Enter bot token first');
+      const r = await fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bot ${token}` } });
+      const j = await r.json();
+      btn.textContent = j.username ? `✓ ${j.username}` : 'Invalid token';
+    } else if (type === 'slack') {
+      const token = document.getElementById('ch-sl-token')?.value?.trim();
+      if (!token) throw new Error('Enter bot token first');
+      const r = await fetch('https://slack.com/api/auth.test', { headers: { Authorization: `Bearer ${token}` } });
+      const j = await r.json();
+      btn.textContent = j.ok ? `✓ ${j.team}` : (j.error || 'Invalid token');
+    } else if (type === 'notion') {
+      const token = document.getElementById('ch-nt-token')?.value?.trim();
+      if (!token) throw new Error('Enter integration token first');
+      const r = await fetch('https://api.notion.com/v1/users/me', { headers: { Authorization: `Bearer ${token}`, 'Notion-Version': '2022-06-28' } });
+      const j = await r.json();
+      btn.textContent = j.object === 'user' ? `✓ Connected` : 'Invalid token';
     } else {
-      btn.textContent = 'Test via terminal';
+      btn.textContent = 'Save & test via Forge';
     }
   } catch(e) {
     btn.textContent = e.message || 'Failed';
   }
   btn.disabled = false;
-  setTimeout(() => btn.textContent = 'Test connection', 3000);
+  setTimeout(() => { btn.textContent = orig; }, 3000);
 }
 
 async function saveChannel(type) {
   let data = { enabled: true };
+  const v = id => document.getElementById(id)?.value?.trim() || '';
   if (type === 'telegram') {
-    const token   = document.getElementById('ch-tg-token')?.value?.trim();
-    const user_id = document.getElementById('ch-tg-chat')?.value?.trim();
+    const token = v('ch-tg-token'), user_id = v('ch-tg-chat');
     if (!token || !user_id) { alert('Bot token and Chat ID are both required.'); return; }
-    data.bot_token = token;
-    data.user_id   = user_id;
+    data.bot_token = token; data.user_id = user_id;
   } else if (type === 'discord') {
-    const webhook = document.getElementById('ch-dc-webhook')?.value?.trim();
-    if (!webhook) { alert('Webhook URL is required.'); return; }
-    data.webhook_url = webhook;
+    const token = v('ch-dc-token'), guild_id = v('ch-dc-guild');
+    if (!token || !guild_id) { alert('Bot Token and Server ID are required.'); return; }
+    data.bot_token = token; data.guild_id = guild_id;
+    const channel_id = v('ch-dc-channel');
+    if (channel_id) data.channel_id = channel_id;
   } else if (type === 'whatsapp') {
-    data.sid   = document.getElementById('ch-wa-sid')?.value?.trim();
-    data.token = document.getElementById('ch-wa-token')?.value?.trim();
-    data.from  = document.getElementById('ch-wa-from')?.value?.trim();
-    data.to    = document.getElementById('ch-wa-to')?.value?.trim();
+    data.sid = v('ch-wa-sid'); data.token = v('ch-wa-token');
+    data.from = v('ch-wa-from'); data.to = v('ch-wa-to');
+  } else if (type === 'slack') {
+    const token = v('ch-sl-token');
+    if (!token) { alert('Bot Token is required.'); return; }
+    data.bot_token = token; data.channel = v('ch-sl-channel');
+  } else if (type === 'gmail') {
+    const email = v('ch-gm-email'), password = v('ch-gm-password');
+    if (!email || !password) { alert('Gmail address and App Password are required.'); return; }
+    data.email = email; data.password = password;
+  } else if (type === 'icloud') {
+    const email = v('ch-ic-email'), password = v('ch-ic-password');
+    if (!email || !password) { alert('Apple ID and App Password are required.'); return; }
+    data.email = email; data.password = password;
+  } else if (type === 'notion') {
+    const token = v('ch-nt-token');
+    if (!token) { alert('Integration Token is required.'); return; }
+    data.token = token;
   }
   const btn = event.target;
   btn.textContent = 'Saving…';
@@ -4626,6 +5337,453 @@ function exportMemory() {
     a.click();
     addToast('Memory exported');
   }).catch(() => addToast('Export failed — check API connection'));
+}
+
+// ══════════════════════════════════════════
+//  API KEY VAULT
+// ══════════════════════════════════════════
+const KEY_MAP = [
+  { id: 'google-client-id',     path: 'integrations.google.client_id' },
+  { id: 'google-client-secret', path: 'integrations.google.client_secret' },
+  { id: 'github-token',         path: 'integrations.github.token' },
+  { id: 'notion-token',         path: 'integrations.notion.token' },
+  { id: 'slack-bot-token',      path: 'integrations.slack.bot_token' },
+  { id: 'serper-key',           path: 'integrations.serper.api_key' },
+  { id: 'brave-key',            path: 'integrations.brave.api_key' },
+  { id: 'cursor-key',           path: 'providers.cursor.api_key' },
+  { id: 'icloud-email',         path: 'integrations.icloud.email' },
+  { id: 'icloud-app-password',  path: 'integrations.icloud.app_password' },
+  { id: 'weather-key',          path: 'integrations.weather.api_key' },
+  { id: 'weather-city',         path: 'integrations.weather.default_city' },
+];
+
+async function loadKeyVault() {
+  const data = await api('/keys').catch(() => ({}));
+  KEY_MAP.forEach(({ id, path }) => {
+    const inp = document.getElementById('key-' + id);
+    if (!inp) return;
+    const val = path.split('.').reduce((o, k) => (o && o[k] !== undefined ? o[k] : ''), data);
+    inp.value = val || '';
+    setDot(id, val ? 'saved' : '');
+  });
+  // Custom keys
+  const custom = data.integrations?.custom || {};
+  const list = document.getElementById('custom-keys-list');
+  if (list) {
+    list.innerHTML = '';
+    Object.entries(custom).forEach(([k, v]) => addCustomKeyRow(k, v));
+  }
+}
+
+const EYE_OPEN = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_SHUT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+function toggleKeyVis(inputId, btn) {
+  const inp = typeof inputId === 'string' ? document.getElementById(inputId) : inputId;
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.innerHTML = inp.type === 'password' ? EYE_OPEN : EYE_SHUT;
+}
+
+function markKeyDirty(id) { setDot(id, 'dirty'); }
+
+function setDot(id, state) {
+  const dot = document.getElementById('dot-' + id);
+  if (!dot) return;
+  dot.className = 'key-save-dot' + (state ? ' ' + state : '');
+}
+
+function addCustomKeyRow(name = '', value = '') {
+  const list = document.getElementById('custom-keys-list');
+  if (!list) return;
+  const row = document.createElement('div');
+  row.className = 'custom-key-row';
+  row.innerHTML = `
+    <input class="custom-key-name" type="text" placeholder="KEY_NAME" value="${name}">
+    <div class="key-input-wrap" style="flex:1">
+      <input class="key-input" type="password" placeholder="value" value="${value}" oninput="markKeyDirty('custom-all')">
+      <button class="key-eye" onclick="toggleKeyVis(this.previousElementSibling,this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    </div>
+    <div class="key-save-dot" id="dot-custom-all"></div>
+    <button class="btn-icon-del" onclick="this.closest('.custom-key-row').remove();markKeyDirty('custom-all')">✕</button>
+  `;
+  // Fix: wire eye button to sibling input properly
+  const eye = row.querySelector('.key-eye');
+  eye.onclick = function() {
+    toggleKeyVis(this.previousElementSibling, this);
+  };
+  list.appendChild(row);
+}
+
+async function saveAllKeys() {
+  const payload = { integrations: { google: {}, github: {}, notion: {}, slack: {}, serper: {}, brave: {}, icloud: {}, weather: {}, custom: {} }, providers: { cursor: {} } };
+  KEY_MAP.forEach(({ id, path }) => {
+    const inp = document.getElementById('key-' + id);
+    if (!inp) return;
+    const keys = path.split('.');
+    let obj = payload;
+    keys.slice(0, -1).forEach(k => { obj = obj[k] = obj[k] || {}; });
+    obj[keys[keys.length - 1]] = inp.value.trim();
+  });
+  // Custom keys
+  document.querySelectorAll('#custom-keys-list .custom-key-row').forEach(row => {
+    const k = row.querySelector('.custom-key-name')?.value?.trim();
+    const v = row.querySelector('.key-input')?.value?.trim();
+    if (k) payload.integrations.custom[k] = v || '';
+  });
+  const res = await api('/keys', payload).catch(() => null);
+  if (res) {
+    KEY_MAP.forEach(({ id }) => setDot(id, 'saved'));
+    setDot('custom-all', 'saved');
+    addToast('API keys saved');
+  } else {
+    addToast('Save failed — check API connection');
+  }
+}
+
+// ══════════════════════════════════════════
+//  ALARMS
+// ══════════════════════════════════════════
+let alarmEditId = null;
+
+async function loadAlarms() {
+  const alarms = await api('/alarms').catch(() => []);
+  const list = document.getElementById('alarms-list');
+  const badge = document.getElementById('alarms-count-badge');
+  if (!list) return;
+
+  const enabled = alarms.filter(a => a.enabled !== false);
+  if (badge) { badge.textContent = enabled.length + ' active'; badge.style.display = enabled.length ? '' : 'none'; }
+
+  if (!alarms.length) {
+    list.innerHTML = `<div class="alarm-empty">
+      <div class="alarm-empty-icon">⏰</div>
+      <div class="alarm-empty-text">No alarms set yet.<br>Add one to schedule recurring tasks.</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = alarms.map(a => {
+    const schedLabel = cronToHuman(a.cron || '');
+    return `<div class="alarm-card ${a.enabled === false ? 'disabled' : ''}" id="alarm-card-${a.id}">
+      <div class="alarm-icon">⏰</div>
+      <div class="alarm-info">
+        <div class="alarm-name">${escHtml(a.name || 'Untitled')}</div>
+        <div class="alarm-sched">${schedLabel}</div>
+        <div class="alarm-task">${escHtml(a.task || '')}</div>
+      </div>
+      <div class="alarm-actions">
+        <label class="alarm-toggle" title="${a.enabled !== false ? 'Disable' : 'Enable'}">
+          <input type="checkbox" ${a.enabled !== false ? 'checked' : ''} onchange="toggleAlarm(${a.id}, this.checked)">
+          <span class="alarm-toggle-slider"></span>
+        </label>
+        <button class="btn btn-ghost" style="font-size:10px;height:26px;padding:0 8px" onclick="editAlarm(${a.id})">Edit</button>
+        <button class="btn-icon-del" onclick="deleteAlarm(${a.id})" title="Delete">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cronToHuman(cron) {
+  if (!cron) return 'Custom schedule';
+  const parts = cron.split(' ');
+  if (parts.length < 5) return cron;
+  const [min, hr, , , dow] = parts;
+  const pad = n => String(n).padStart(2, '0');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  if (dow === '*' && hr !== '*') return `Every day at ${pad(hr)}:${pad(min)}`;
+  if (dow === '1-5') return `Weekdays at ${pad(hr)}:${pad(min)}`;
+  if (dow !== '*' && hr !== '*') return `Every ${days[+dow] || dow} at ${pad(hr)}:${pad(min)}`;
+  if (hr === '*') return `Every hour at :${pad(min)}`;
+  return cron;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function openAlarmModal(alarm) {
+  alarmEditId = null;
+  document.getElementById('alarm-edit-id').value = '';
+  document.getElementById('alarm-modal-title').textContent = 'New Alarm';
+  document.getElementById('alarm-name').value = '';
+  document.getElementById('alarm-freq').value = 'daily';
+  document.getElementById('alarm-time').value = '09:00';
+  document.getElementById('alarm-task').value = '';
+  document.getElementById('alarm-channel').value = 'telegram';
+  document.getElementById('alarm-cron-wrap').style.display = 'none';
+  document.getElementById('alarm-day-wrap').style.display = 'none';
+  document.getElementById('alarm-time-wrap').style.display = '';
+  updateAlarmCronPreview();
+  openOverlay('alarm-modal');
+}
+
+function closeAlarmModal() {
+  closeOverlay('alarm-modal');
+}
+
+async function editAlarm(id) {
+  const alarms = await api('/alarms').catch(() => []);
+  const a = alarms.find(x => x.id === id);
+  if (!a) return;
+  alarmEditId = id;
+  document.getElementById('alarm-edit-id').value = id;
+  document.getElementById('alarm-modal-title').textContent = 'Edit Alarm';
+  document.getElementById('alarm-name').value = a.name || '';
+  document.getElementById('alarm-task').value = a.task || '';
+  document.getElementById('alarm-channel').value = a.channel || 'telegram';
+  // Parse cron back to freq/time
+  const parts = (a.cron || '').split(' ');
+  if (parts.length === 5) {
+    const [min, hr, , , dow] = parts;
+    if (dow === '*' && hr !== '*') { document.getElementById('alarm-freq').value = 'daily'; document.getElementById('alarm-time').value = `${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}`; }
+    else if (dow === '1-5') { document.getElementById('alarm-freq').value = 'weekdays'; document.getElementById('alarm-time').value = `${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}`; }
+    else if (hr === '*') { document.getElementById('alarm-freq').value = 'hourly'; }
+    else { document.getElementById('alarm-freq').value = 'custom'; document.getElementById('alarm-cron').value = a.cron; }
+  } else {
+    document.getElementById('alarm-freq').value = 'custom';
+    document.getElementById('alarm-cron').value = a.cron || '';
+  }
+  updateAlarmCronPreview();
+  openOverlay('alarm-modal');
+}
+
+function updateAlarmCronPreview() {
+  const freq = document.getElementById('alarm-freq')?.value;
+  const time = document.getElementById('alarm-time')?.value || '09:00';
+  const [h, m] = time.split(':');
+  const day  = document.getElementById('alarm-day')?.value || '1';
+  const cronWrap = document.getElementById('alarm-cron-wrap');
+  const dayWrap  = document.getElementById('alarm-day-wrap');
+  const timeWrap = document.getElementById('alarm-time-wrap');
+  const preview  = document.getElementById('alarm-cron-preview');
+
+  let cron = '0 9 * * *', label = '';
+  if (freq === 'daily')    { cron = `${+m} ${+h} * * *`;    label = `Every day at ${time}`; cronWrap.style.display='none'; dayWrap.style.display='none'; timeWrap.style.display=''; }
+  if (freq === 'weekdays') { cron = `${+m} ${+h} * * 1-5`;  label = `Weekdays at ${time}`;  cronWrap.style.display='none'; dayWrap.style.display='none'; timeWrap.style.display=''; }
+  if (freq === 'weekly')   { cron = `${+m} ${+h} * * ${day}`; const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; label = `Every ${days[+day]} at ${time}`; cronWrap.style.display='none'; dayWrap.style.display=''; timeWrap.style.display=''; }
+  if (freq === 'hourly')   { cron = `${+m} * * * *`;        label = `Every hour at :${String(m).padStart(2,'0')}`; cronWrap.style.display='none'; dayWrap.style.display='none'; timeWrap.style.display=''; }
+  if (freq === 'custom')   { cron = document.getElementById('alarm-cron')?.value || ''; label = cron || 'Enter cron expression'; cronWrap.style.display=''; dayWrap.style.display='none'; timeWrap.style.display='none'; }
+  if (preview) preview.textContent = 'Schedule: ' + label;
+}
+
+async function submitAlarm() {
+  const freq = document.getElementById('alarm-freq').value;
+  const time = document.getElementById('alarm-time').value || '09:00';
+  const [h, m] = time.split(':');
+  const day = document.getElementById('alarm-day').value;
+  let cron;
+  if (freq === 'daily')    cron = `${+m} ${+h} * * *`;
+  else if (freq === 'weekdays') cron = `${+m} ${+h} * * 1-5`;
+  else if (freq === 'weekly')   cron = `${+m} ${+h} * * ${day}`;
+  else if (freq === 'hourly')   cron = `${+m} * * * *`;
+  else cron = document.getElementById('alarm-cron').value.trim();
+
+  const payload = {
+    id: alarmEditId || undefined,
+    name: document.getElementById('alarm-name').value.trim() || 'Untitled Alarm',
+    cron,
+    task: document.getElementById('alarm-task').value.trim(),
+    channel: document.getElementById('alarm-channel').value,
+    enabled: true,
+  };
+  if (!payload.task) { addToast('Please enter a task / prompt'); return; }
+
+  const res = await api('/alarms', payload).catch(() => null);
+  if (res) {
+    closeAlarmModal();
+    loadAlarms();
+    addToast(alarmEditId ? 'Alarm updated' : 'Alarm created');
+  } else {
+    addToast('Save failed — check API connection');
+  }
+}
+
+async function toggleAlarm(id, enabled) {
+  await api('/alarms/toggle', { id, enabled }).catch(() => null);
+  loadAlarms();
+}
+
+async function deleteAlarm(id) {
+  if (!confirm('Delete this alarm?')) return;
+  await api('/alarms/delete', { id }).catch(() => null);
+  loadAlarms();
+  addToast('Alarm deleted');
+}
+
+// ══════════════════════════════════════════
+//  SKILL CREATOR
+// ══════════════════════════════════════════
+const SKILL_ICONS = {
+  search:'🔍', web:'🌐', fetch:'🌐', url:'🌐', brave:'🔍',
+  gmail:'📧', mail:'📧', email:'📧', icloud:'📧', send:'📤',
+  slack:'💬', telegram:'💬', notion:'📝', github:'🐙',
+  gcal:'📅', calendar:'📅', gsheets:'📊', sheets:'📊',
+  weather:'🌤', cursor:'💻', gsd:'⚡', default:'🔧'
+};
+function skillIcon(name) {
+  const n = (name||'').toLowerCase();
+  for (const [k,v] of Object.entries(SKILL_ICONS)) { if (n.includes(k)) return v; }
+  return SKILL_ICONS.default;
+}
+
+let _skillsCache = [];
+// Skills that are channel integrations — shown in Channels, not Skills
+const CHANNEL_SKILLS = new Set(['slack_send','gmail_send','gmail_auth','icloud_send','notion_create']);
+// Skills that need API keys — map to config path
+const SKILL_KEY_MAP = {
+  brave_search: [{ label: 'Brave Search API Key', path: 'integrations.brave.api_key', type: 'password', link: 'brave.com/search/api' }],
+  web_search:   [{ label: 'Serper API Key', path: 'integrations.serper.key', type: 'password', link: 'serper.dev' }],
+  weather:      [{ label: 'OpenWeatherMap API Key', path: 'integrations.weather.api_key', type: 'password', link: 'openweathermap.org/api' }, { label: 'Default City', path: 'integrations.weather.default_city', type: 'text' }],
+  cursor_ask:   [{ label: 'Cursor API Key', path: 'integrations.cursor.api_key', type: 'password', link: 'cursor.com/settings' }],
+  github_issue: [{ label: 'GitHub Personal Token', path: 'integrations.github.token', type: 'password', link: 'github.com/settings/tokens' }],
+  gcal:         [{ label: 'Google Client ID', path: 'integrations.google.client_id', type: 'text' }, { label: 'Google Client Secret', path: 'integrations.google.client_secret', type: 'password', link: 'console.cloud.google.com' }],
+  gsheets:      [{ label: 'Google Client ID', path: 'integrations.google.client_id', type: 'text' }, { label: 'Google Client Secret', path: 'integrations.google.client_secret', type: 'password', link: 'console.cloud.google.com' }],
+};
+
+async function loadSkillsView() {
+  const all = await api('/skills/list').catch(() => []);
+  const skills = all.filter(s => !CHANNEL_SKILLS.has(s.stem));
+  _skillsCache = skills;
+  const grid   = document.getElementById('skills-grid');
+  const label  = document.getElementById('skills-count-label');
+  if (!grid) return;
+  if (label) label.textContent = `${skills.length} skill${skills.length !== 1 ? 's' : ''} installed`;
+  if (!skills.length) {
+    grid.innerHTML = '<div style="color:var(--tx4);font-size:13px;padding:40px;grid-column:1/-1;text-align:center">No skills installed yet.<br><span style="opacity:.6;font-size:11px">Click + New Skill to add one.</span></div>';
+    return;
+  }
+  grid.innerHTML = skills.map((s, i) => {
+    const icon = skillIcon(s.name || s.stem);
+    const name = s.name || s.stem;
+    const desc = s.description || 'No description';
+    return `<div onclick="openSkillDetail(${i})" style="background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s,box-shadow .15s;cursor:pointer" onmouseover="this.style.borderColor='var(--acc)';this.style.boxShadow='0 0 0 1px var(--acc)'" onmouseout="this.style.borderColor='var(--bd)';this.style.boxShadow='none'">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">${icon}</div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--tx1);letter-spacing:.01em">${xss(name)}</div>
+            <div style="font-size:10px;color:var(--tx4);font-family:var(--font-m);margin-top:1px">${xss(s.file)}</div>
+          </div>
+        </div>
+        <button onclick="event.stopPropagation();deleteSkill('${xss(name)}')" style="width:26px;height:26px;border:none;background:var(--bg3);cursor:pointer;color:var(--tx4);font-size:12px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,color .15s" onmouseover="this.style.background='rgba(220,38,38,.12)';this.style.color='#dc2626'" onmouseout="this.style.background='var(--bg3)';this.style.color='var(--tx4)'">✕</button>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);line-height:1.55;padding-left:41px">${xss(desc)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function openSkillDetail(idx) {
+  const s = _skillsCache[idx];
+  if (!s) return;
+  const name = s.name || s.stem;
+  document.getElementById('sdm-title').textContent = name;
+  document.getElementById('sdm-desc').textContent = s.description || 'No description';
+  document.getElementById('sdm-file').textContent = s.file;
+  document.getElementById('sdm-code').value = 'Loading…';
+
+  // API key config section
+  const keys = SKILL_KEY_MAP[s.stem] || [];
+  let keySection = document.getElementById('sdm-keys-section');
+  if (!keySection) {
+    keySection = document.createElement('div');
+    keySection.id = 'sdm-keys-section';
+    // Insert before the modal-actions div
+    const modalActions = document.querySelector('#skill-detail-modal .modal-actions');
+    if (modalActions) modalActions.parentNode.insertBefore(keySection, modalActions);
+  }
+  if (keys.length) {
+    const cfg = await api('/config').catch(()=>({}));
+    const getVal = path => path.split('.').reduce((o,k) => o?.[k], cfg) || '';
+    keySection.innerHTML = `<div class="field" style="margin-bottom:16px;padding:14px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:8px">
+      <label style="color:var(--amber);margin-bottom:10px;display:block">API Configuration</label>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${keys.map((k,i) => `<div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--tx3);min-width:150px;flex-shrink:0">${k.label}</span>
+          <input id="sdm-key-${i}" type="${k.type}" value="${xss(getVal(k.path))}" placeholder="${k.type==='password'?'Enter key…':''}" style="flex:1;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:7px 10px;font-size:11.5px;color:var(--tx);font-family:var(--font-b);min-width:0;box-sizing:border-box">
+          ${k.link ? `<a href="https://${k.link}" target="_blank" style="font-size:10px;color:var(--acc);white-space:nowrap;text-decoration:none;flex-shrink:0">Get ↗</a>` : ''}
+        </div>`).join('')}
+      </div>
+      <button onclick="saveSkillKeys(${idx})" style="margin-top:10px;height:28px;padding:0 14px;border-radius:6px;border:none;background:var(--acc);color:#fff;font-size:11px;font-weight:600;cursor:pointer;letter-spacing:.02em">Save Keys</button>
+    </div>`;
+  } else {
+    keySection.innerHTML = '';
+  }
+
+  openOverlay('skill-detail-modal');
+  const res = await api(`/skills/get?name=${encodeURIComponent(s.stem)}`).catch(() => null);
+  document.getElementById('sdm-code').value = res?.code || '# Code not available';
+
+  const btn = document.getElementById('sdm-delete-btn');
+  btn.onclick = async () => {
+    if (!confirm(`Delete skill '${name}'?`)) return;
+    const del = await api('/skills/delete', { name: s.stem }).catch(() => null);
+    if (del?.success) { closeOverlay('skill-detail-modal'); addToast(`Skill '${name}' deleted`); loadSkillsView(); }
+    else addToast('Delete failed');
+  };
+}
+
+async function saveSkillKeys(idx) {
+  const s = _skillsCache[idx];
+  if (!s) return;
+  const keys = SKILL_KEY_MAP[s.stem] || [];
+  const cfg = await api('/config').catch(()=>({}));
+  const integrations = JSON.parse(JSON.stringify(cfg.integrations || {}));
+  keys.forEach((k, i) => {
+    const val = document.getElementById(`sdm-key-${i}`)?.value?.trim();
+    if (!val || val.includes('••')) return;
+    const parts = k.path.split('.'); // integrations.X.Y
+    const section = parts[1]; const field = parts[2];
+    if (!integrations[section]) integrations[section] = {};
+    integrations[section][field] = val;
+  });
+  const res = await api('/keys', integrations).catch(()=>null);
+  if (res?.success) addToast('API keys saved');
+  else addToast('Save failed — check daemon');
+}
+
+async function deleteSkill(name) {
+  if (!confirm(`Delete skill '${name}'?`)) return;
+  const res = await api('/skills/delete', { name }).catch(() => null);
+  if (res?.success) { addToast(`Skill '${name}' deleted`); loadSkillsView(); }
+  else addToast('Delete failed — check daemon');
+}
+
+function openSkillCreator() { openOverlay('skill-creator-modal'); }
+function closeSkillCreator() {
+  closeOverlay('skill-creator-modal');
+}
+
+async function saveNewSkill() {
+  const nameRaw  = document.getElementById('skill-name-input')?.value?.trim() || '';
+  const name     = nameRaw.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  const desc     = document.getElementById('skill-desc-input')?.value?.trim() || '';
+  const behavior = document.getElementById('skill-behavior-input')?.value?.trim() || '';
+  const paramsRaw = document.getElementById('skill-params-input')?.value?.trim() || '';
+
+  if (!name) { addToast('Skill name required'); return; }
+  if (!behavior) { addToast('Please describe what this skill should do'); return; }
+
+  // Auto-generate a stub with docstring + param extraction so daemon can wire it up
+  const paramList = paramsRaw
+    ? paramsRaw.split(',').map(p => p.trim()).filter(Boolean)
+    : [];
+  const paramLines = paramList.map(p =>
+    `    ${p} = kwargs.get('${p}', '')`
+  ).join('\n');
+  const code = `"""\nSkill: ${name}\n${desc || behavior}\n\nBehavior:\n${behavior}\n"""\ndef run(**kwargs) -> str:\n${paramLines || '    pass  # no required inputs'}\n    # TODO: implement skill logic\n    return f"Skill '${name}' executed"\n`;
+
+  const res = await api('/skills/save', { name, code }).catch(() => null);
+  if (res?.success) {
+    closeSkillCreator();
+    loadSkillsView();
+    addToast(`Skill '${name}' created`);
+    ['skill-name-input','skill-desc-input','skill-behavior-input','skill-params-input'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  } else {
+    addToast('Save failed — check daemon connection');
+  }
 }
 
 // ══════════════════════════════════════════
