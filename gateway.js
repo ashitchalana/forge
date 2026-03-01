@@ -382,25 +382,8 @@ async function handleTelegram(msg) {
     if (!transcript) { await tgSend(chatId, "Could not transcribe — add an OpenAI key or install faster-whisper."); return; }
     log(`Voice transcript: ${transcript.slice(0, 80)}`);
     await tgSend(chatId, `🎤 _${transcript}_`);
-    // Feed transcript to Claude as a regular message
-    const { spawn } = require("child_process");
-    const fsSync = require("fs");
-    const aiResp = await new Promise(resolve => {
-      const formattedPrompt = transcript + "\n\n[RESPONSE FORMAT: You are messaging via Telegram. Rules: NO markdown ## headings — use *BOLD* for headers instead. Keep responses concise and executive. No walls of text. Max 200 words unless task output requires more. Use bullet points sparingly. Professional co-founder tone.]";
-      let sessionId = null;
-      try { const s = JSON.parse(fsSync.readFileSync(process.env.HOME + "/.forge/claude_session.json", "utf8")); sessionId = s.session_id; } catch(e) {}
-      let soulPrompt = "";
-      try { soulPrompt = fsSync.readFileSync(process.env.HOME + "/.forge/core/soul.md", "utf8").slice(0, 8000); } catch(e) {}
-      const args = sessionId
-        ? ["-p","--output-format","json","--dangerously-skip-permissions","--model","sonnet","--resume",sessionId,formattedPrompt]
-        : ["-p","--output-format","json","--dangerously-skip-permissions","--model","sonnet",...(soulPrompt?["--system-prompt",soulPrompt]:[]),formattedPrompt];
-      const cleanEnv = { ...process.env }; delete cleanEnv.CLAUDECODE; delete cleanEnv.CLAUDE_CODE_ENTRYPOINT;
-      const child = spawn("claude", args, { stdio: ["ignore","pipe","pipe"], env: cleanEnv, cwd: process.env.HOME });
-      let out = "";
-      child.stdout.on("data", d => out += d.toString());
-      child.on("close", () => { try { const d = JSON.parse(out.trim()); if (d.session_id) fsSync.writeFileSync(process.env.HOME + "/.forge/claude_session.json", JSON.stringify({ session_id: d.session_id })); resolve(d.result || out.trim() || "Done."); } catch { resolve(out.trim() || "Done."); } });
-      child.on("error", () => resolve("Claude unavailable."));
-    });
+    // Feed transcript through callClaude — provider-aware routing handles Gemini/OpenAI/Claude
+    const aiResp = await callClaude(transcript);
     await tgSend(chatId, aiResp);
     return;
   }
@@ -448,6 +431,22 @@ async function handleTelegram(msg) {
 
   function callClaude(prompt) {
     return new Promise((resolve) => {
+      // ── Provider routing ─────────────────────────────────────────────────
+      // If the active provider is not Anthropic/Claude CLI, delegate to daemon
+      // so Gemini, OpenAI, and any other configured provider works without
+      // requiring Claude CLI authentication on the machine.
+      const _cfg     = loadCfg();
+      const _primary = (_cfg.models || {}).primary || {};
+      const _provider = _primary.provider || "anthropic";
+      if (_provider !== "anthropic" && _provider !== "claude_cli") {
+        log(`callClaude → daemon proxy (provider: ${_provider})`);
+        daemonPost("/chat", { message: prompt, agent: "FORGE" })
+          .then(r => resolve(r.response || r.error || "No response."))
+          .catch(e => resolve("Daemon unavailable: " + e.message));
+        return;
+      }
+      // ─────────────────────────────────────────────────────────────────────
+
       let sessionId = null;
       try {
         const s = JSON.parse(fsSync.readFileSync(process.env.HOME + "/.forge/claude_session.json", "utf8"));
@@ -763,8 +762,34 @@ function loadAgentSoul(agentName) {
  */
 function spawnAgent(agentName, brief) {
   return new Promise((resolve) => {
-    const soul = loadAgentSoul(agentName);
+    const soul  = loadAgentSoul(agentName);
     const start = Date.now();
+
+    // ── Provider routing ─────────────────────────────────────────────────
+    // On non-Anthropic machines (Gemini, OpenAI, etc.) route through daemon
+    // instead of spawning a Claude CLI subprocess that isn't authenticated.
+    // Soul is prepended to the brief so agent persona is preserved end-to-end.
+    const _cfg      = loadCfg();
+    const _primary  = (_cfg.models || {}).primary || {};
+    const _provider = _primary.provider || "anthropic";
+    if (_provider !== "anthropic" && _provider !== "claude_cli") {
+      log(`[ORCHESTRATOR] Routing ${agentName.toUpperCase()} via daemon (provider: ${_provider})`);
+      const fullPrompt = soul ? `${soul}\n\n---\n\n${brief}` : brief;
+      daemonPost("/chat", { message: fullPrompt, agent: agentName.toUpperCase() })
+        .then(r => {
+          const duration = Math.round((Date.now() - start) / 1000);
+          log(`[ORCHESTRATOR] ${agentName.toUpperCase()} done via daemon in ${duration}s`);
+          resolve({ agent: agentName, result: r.response || r.error || "No response.", duration, error: null });
+        })
+        .catch(e => {
+          const duration = Math.round((Date.now() - start) / 1000);
+          log(`[ORCHESTRATOR] ${agentName.toUpperCase()} daemon error: ${e.message}`);
+          resolve({ agent: agentName, result: null, duration, error: e.message });
+        });
+      return;
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     log(`[ORCHESTRATOR] Spawning ${agentName.toUpperCase()}...`);
 
     const { spawn } = require("child_process");
