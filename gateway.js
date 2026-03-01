@@ -190,11 +190,11 @@ const gateway = http.createServer(async (req, res) => {
         const agentDir  = path.join(FORGE_CFG, "agents", safeName.toLowerCase());
         fs.mkdirSync(path.join(agentDir, "subagents"), { recursive: true });
         // Write minimal soul.md
-        const soul = `# Soul — ${safeName} / ${role}\n\nI am ${safeName}. ${role}.\n\nI operate within the Forge multi-agent network.\nI report to CORTEX. I execute with precision.\n\n## GOD MODE: ACTIVE\nReports to CORTEX. Never directly to the user.\n`;
+        const soul = `# Soul — ${safeName} / ${role}\n\nI am ${safeName}. ${role}.\n\nI operate within the Forge multi-agent network.\nI report to FORGE. I execute with precision.\n\n## GOD MODE: ACTIVE\nReports to FORGE. Never directly to the user.\n`;
         fs.writeFileSync(path.join(agentDir, "soul.md"),      soul);
-        fs.writeFileSync(path.join(agentDir, "identity.md"),  `# Identity — ${safeName}\nName: ${safeName}\nRole: ${role}\nModel: ${model||"claude-sonnet-4-6"}\nReports to: CORTEX\n`);
+        fs.writeFileSync(path.join(agentDir, "identity.md"),  `# Identity — ${safeName}\nName: ${safeName}\nRole: ${role}\nModel: ${model||"claude-sonnet-4-6"}\nReports to: FORGE\n`);
         fs.writeFileSync(path.join(agentDir, "memory.md"),    `# Memory — ${safeName}\n\n> Active working memory. Updated per task.\n\n## Last Task\nNone yet.\n`);
-        fs.writeFileSync(path.join(agentDir, "protocols.md"), `# Protocols — ${safeName}\n\n## Quality Standard\nFortune 500 minimum. Execute with precision. Report to CORTEX.\n`);
+        fs.writeFileSync(path.join(agentDir, "protocols.md"), `# Protocols — ${safeName}\n\n## Quality Standard\nFortune 500 minimum. Execute with precision. Report to FORGE.\n`);
         // Save to DB agents table
         try {
           require("child_process").execSync(`sqlite3 "${path.join(FORGE_CFG,"forge.db")}" "INSERT OR REPLACE INTO agents (name,role,model) VALUES ('${safeName}','${role}','${model||"claude-sonnet-4-6"}');"`, {encoding:"utf8"});
@@ -565,9 +565,9 @@ async function handleTelegram(msg) {
       `*${a.name}* — ${a.role}\n${a.domain}`
     ).join("\n\n");
     await tgSend(chatId,
-      `*CORTEX Agent Network*\n\n${lines}\n\n` +
+      `*FORGE Agent Network*\n\n${lines}\n\n` +
       `_All agents spawn as parallel Claude CLI processes._\n` +
-      `_CORTEX orchestrates. Quality gate before every delivery._`
+      `_FORGE orchestrates. Quality gate before every delivery._`
     );
     return;
   }
@@ -715,7 +715,7 @@ Be specific, cite numbers and names where known. Max 450 words. *BOLD* headers, 
     return;
   }
 
-// ── CORTEX Multi-Agent Orchestration ─────────────────────────────────────────
+// ── FORGE Multi-Agent Orchestration ─────────────────────────────────────────
 
 const AGENTS_DIR = path.join(FORGE_CFG, "agents");
 
@@ -794,10 +794,10 @@ function spawnAgent(agentName, brief) {
 }
 
 /**
- * CORTEX intent analyser — decides single vs multi-agent routing
+ * FORGE intent analyser — decides single vs multi-agent routing
  */
 async function analyzeIntent(directive) {
-  const analysisPrompt = `You are CORTEX, Chief Strategy Officer. Analyse this directive and output a JSON routing decision.
+  const analysisPrompt = `You are FORGE, Chief Strategy Officer. Analyse this directive and output a JSON routing decision.
 
 Directive: "${directive}"
 
@@ -810,9 +810,9 @@ Available agents:
 - prometheus: Autonomous Revenue — revenue opportunities, monetisation, growth hacks
 
 Decision rules:
-- Single domain task → route to 1 agent OR handle yourself (CORTEX)
+- Single domain task → route to 1 agent OR handle yourself (FORGE)
 - Multi-domain task → assign 2+ agents with clear scope split
-- Pure strategy/coordination/simple task → CORTEX handles alone (agents=[])
+- Pure strategy/coordination/simple task → FORGE handles alone (agents=[])
 
 Output ONLY valid JSON, no explanation, no markdown fences:
 {"complexity":"simple","agents":[],"cortex_handles_alone":true,"agent_scopes":{},"strategy":""}`;
@@ -834,7 +834,7 @@ Output ONLY valid JSON, no explanation, no markdown fences:
     agents: [],
     cortex_handles_alone: true,
     agent_scopes: {},
-    strategy: "CORTEX handling this task directly."
+    strategy: "FORGE handling this task directly."
   };
 }
 
@@ -847,7 +847,7 @@ function buildAgentBrief(agentName, scope, directive, priorResults, strategy) {
     : "";
 
   return `MISSION BRIEF — ${agentName.toUpperCase()}
-Issued by: CORTEX (Chief Strategy Officer)
+Issued by: FORGE (Chief Strategy Officer)
 
 *Strategic Context:*
 ${strategy}
@@ -864,18 +864,18 @@ ${directive}
 - Be specific: numbers, names, recommendations, not generalities
 - Structure your output clearly with bold headers${priorContext}
 
-*Deliver your analysis now. CORTEX will synthesise all agent reports.*`;
+*Deliver your analysis now. FORGE will synthesise all agent reports.*`;
 }
 
 /**
- * CORTEX quality gate — reviews all agent outputs before presenting to the user
+ * FORGE quality gate — reviews all agent outputs before presenting to the user
  */
 async function qualityGate(directive, agentResults) {
   const resultsText = agentResults
     .map(r => `*${r.agent.toUpperCase()} (${r.duration}s):*\n${r.result || "[no output]"}`)
     .join("\n\n---\n\n");
 
-  const gatePrompt = `You are CORTEX, Chief Strategy Officer. Quality gate and synthesise agent reports.
+  const gatePrompt = `You are FORGE, Chief Strategy Officer. Quality gate and synthesise agent reports.
 
 *Original Directive:*
 ${directive}
@@ -917,7 +917,7 @@ Synthesis requirements:
 
 /**
  * Main orchestration function
- * Returns synthesised string if multi-agent, null if CORTEX handles alone
+ * Returns synthesised string if multi-agent, null if FORGE handles alone
  */
 async function orchestrate(directive, chatId) {
   const ackStart = Date.now();
@@ -932,7 +932,7 @@ async function orchestrate(directive, chatId) {
 
   const agentNames = intent.agents.map(a => a.toUpperCase()).join(", ");
   await tgSend(chatId,
-    `*CORTEX → Orchestrating*\n\n` +
+    `*FORGE → Orchestrating*\n\n` +
     `Strategy: ${intent.strategy}\n\n` +
     `Dispatching: *${agentNames}* in parallel\n` +
     `Standing by for results…`
@@ -1023,7 +1023,7 @@ async function orchestrate(directive, chatId) {
     log(`Telegram → ${response.slice(0, 60)}`);
     await tgSend(chatId, response);
   } else {
-    // Route through CORTEX orchestration — multi-agent or single
+    // Route through FORGE orchestration — multi-agent or single
     taskRunning = true;
     const start = Date.now();
     await telegramCall("sendChatAction", { chat_id: chatId, action: "typing" });
@@ -1033,13 +1033,13 @@ async function orchestrate(directive, chatId) {
         const orchestrated = await orchestrate(text, chatId);
 
         if (orchestrated !== null) {
-          // Multi-agent result — already quality-gated by CORTEX
+          // Multi-agent result — already quality-gated by FORGE
           taskRunning = false;
           const secs = Math.round((Date.now() - start) / 1000);
           log(`Telegram → [orchestrated ${secs}s] ${orchestrated.slice(0, 60)}`);
           await tgSend(chatId, orchestrated);
         } else {
-          // Single-domain — CORTEX handles via callClaude
+          // Single-domain — FORGE handles via callClaude
           await tgSend(chatId, "🔧 On it.");
           const response = await callClaude(text);
           taskRunning = false;
