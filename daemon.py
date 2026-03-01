@@ -511,6 +511,18 @@ class ForgeAI:
         model_cfg = cfg.get("models", {}).get(active_model_key, {})
         model_key = model_cfg.get("api_key", "") or key
 
+        # OpenAI OAuth fallback — if api_key is empty, load access_token from token file
+        if provider == "openai" and not model_key:
+            _token_file = FORGE_CFG / "openai_token.json"
+            if _token_file.exists():
+                try:
+                    _tok = json.loads(_token_file.read_text())
+                    model_key = _tok.get("access_token", "")
+                    if model_key:
+                        log.info("OpenAI: OAuth access_token loaded from openai_token.json")
+                except Exception as _e:
+                    log.warning(f"OpenAI: failed to load openai_token.json: {_e}")
+
         if provider == "cursor_bg":  return ForgeAI._cursor_bg(system, messages, active_model_key, cfg)
         if provider == "cursor":    return ForgeAI._cursor_call(system, messages, active_model_key, cfg)
         if provider == "google":    return ForgeAI._gemini_call(system, messages, model, model_key)
