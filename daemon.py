@@ -2697,24 +2697,27 @@ def _sched_seo():
 
 
 def _sched_competitive_research():
-    """12AM nightly — competitive landscape research for your project."""
+    """12AM nightly — competitive landscape research (customize via heartbeat.md schedule)."""
     cfg = load_cfg()
+    owner = cfg.get("owner", "there")
     log.info("Scheduled: competitive research starting")
-    _notify("Forge: Starting midnight competitive research...", cfg)
+    _notify(f"Starting midnight competitive research...", cfg)
     date_str = datetime.now().strftime("%Y%m%d")
+    # Generic prompt — reads owner context from identity.md
+    identity = read_core("identity.md")[:500]
     prompt = (
-        "You are Forge, autonomous AI for your project. "
-        "Research the current competitive landscape: "
-        "1. Check Sudowrite, NovelAI, Jasper, Copy.ai, Notion AI for new features or pricing changes. "
-        "2. Identify any new AI writing or storytelling tools launched recently. "
-        "3. Note trends in user sentiment from public forums (Reddit, Twitter/X, HN, Product Hunt). "
-        "4. Flag 2-3 concrete opportunities your project should act on within 30 days. "
+        f"You are an autonomous AI assistant. Based on the owner context below, "
+        f"research the current competitive landscape relevant to their work. "
+        f"1. Identify key competitors or alternatives in their space. "
+        f"2. Note any recent developments, new entrants, or pricing changes. "
+        f"3. Flag 2-3 concrete opportunities to act on within 30 days. "
+        f"Owner context:\n{identity}\n\n"
         f"Save a full report to ~/Forge/research/competitive_{date_str}.md."
     )
     result = _spawn_claude_fresh(prompt, workdir=str(FORGE_WS), label="competitive")
     summary = (result or "No output")[:400]
     save_learning("competitive_intel", f"Research {datetime.now().strftime('%Y-%m-%d')}: {summary[:150]}", "scheduler")
-    _notify(f"*Forge Competitive Research done*\n\n{summary}", cfg)
+    _notify(f"Competitive Research done\n\n{summary}", cfg)
     log.info(f"Scheduled competitive done: {summary[:80]}")
 
 
@@ -2737,9 +2740,11 @@ def _sched_daily_brief():
 
         task_lines = "\n".join(f"  • {r[0][:55]} [{r[1] or 'P3'}]" for r in top_tasks) or "  None"
         name = get_agent_name()
+        owner = cfg.get("owner", "")
+        greeting = f"Good morning, {owner}." if owner else "Good morning."
         brief = (
-            f"Good morning, Ash.\n\n"
-            f"*{name} — Daily Brief {datetime.now().strftime('%a %d %b')}*\n\n"
+            f"{greeting}\n\n"
+            f"{name} — Daily Brief {datetime.now().strftime('%a %d %b')}\n\n"
             f"Tasks: {in_prog} in progress | {backlog} open | {done_24h} completed last 24h\n\n"
             f"Top open:\n{task_lines}\n\n"
             f"Memory: {mem_count():,} entries | Mode: {'GOD' if god_mode_active() else 'standard'}\n\n"
