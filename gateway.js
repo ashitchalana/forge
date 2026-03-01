@@ -322,6 +322,20 @@ function telegramCall(method, body) {
 }
 
 async function tgSend(chatId, text) {
+  // Auto-chunk long messages
+  if (text.length > 3800) {
+    const chunks = [];
+    let remaining = text;
+    while (remaining.length > 0) {
+      chunks.push(remaining.slice(0, 3800));
+      remaining = remaining.slice(3800);
+    }
+    for (const chunk of chunks) {
+      await tgSend(chatId, chunk);
+      await new Promise(r => setTimeout(r, 500));
+    }
+    return;
+  }
   // Split long messages
   const max = 4000;
   for (let i = 0; i < text.length; i += max) {
@@ -418,6 +432,16 @@ async function handleTelegram(msg) {
   }
 
   log(`Telegram ← ${text.slice(0, 60)}`);
+
+  // ── Hatch sequence: route first-ever message through daemon so FIRST_CONTACT_SYSTEM fires ──
+  const bootStatus = await daemonGet("/status");
+  if (bootStatus.first_contact) {
+    log("First contact detected — routing through daemon hatch sequence");
+    await telegramCall("sendChatAction", { chat_id: chatId, action: "typing" });
+    const hatch = await daemonPost("/chat", { message: text || "Hello", agent: "FORGE" });
+    await tgSend(chatId, hatch.response || "Forge is online.");
+    return;
+  }
 
   const { spawn } = require("child_process");
   const fsSync = require("fs");
