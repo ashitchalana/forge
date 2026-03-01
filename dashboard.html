@@ -4194,9 +4194,8 @@ function playHatchSequence() {
   messages.innerHTML = '';
 
   const lines = [
-    { text: '🐣 *pop*',              delay: 0    },
-    { text: 'hi! i just hatched.',   delay: 1200 },
-    { text: 'who are you? who am i?', delay: 2800 },
+    { text: '🐣 <strong>POP</strong>',                    delay: 0    },
+    { text: 'who am i? and tell me about yourself?',       delay: 1400 },
   ];
 
   lines.forEach(({ text, delay }) => {
@@ -4216,10 +4215,10 @@ function playHatchSequence() {
   setTimeout(() => {
     const inp = document.getElementById('input-field');
     if (inp) {
-      inp.placeholder = 'tell me who you are…';
+      inp.placeholder = 'tell me who you are and what we\'re building…';
       inp.focus();
     }
-  }, 8500);
+  }, 2800);
 }
 
 // ══════════════════════════════════════════
