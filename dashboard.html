@@ -4156,6 +4156,53 @@ async function onModelSelectChange(model) {
 }
 
 // ══════════════════════════════════════════
+//  FIRST-RUN HATCH SEQUENCE
+// ══════════════════════════════════════════
+function playHatchSequence() {
+  const messages = document.getElementById('messages');
+  const empty    = document.getElementById('empty-state');
+  if (!messages || !empty) return;
+
+  empty.style.display = 'none';
+  messages.style.display = 'flex';
+  messages.innerHTML = '';
+
+  const lines = [
+    { text: '🐣 *pop*',                                  delay: 0    },
+    { text: 'hi! i just hatched.',                       delay: 1200 },
+    { text: '...wait. who am i? 👀',                     delay: 2500 },
+    { text: "oh — i'm Forge! 🔥",                        delay: 4000 },
+    { text: 'i build things. i execute. i never sleep.', delay: 5500 },
+    { text: 'okay your turn.',                           delay: 6500 },
+    { text: 'who are you? and what are we making? ✨',   delay: 7500 },
+  ];
+
+  lines.forEach(({ text, delay }) => {
+    setTimeout(() => {
+      const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const html = `
+        <div class="msg" style="animation:msgIn .22s ease">
+          <div class="msg-avatar cortex-av">CX</div>
+          <div class="msg-body">
+            <div class="msg-bubble">${text}</div>
+            <div class="msg-time">${ts}</div>
+          </div>
+        </div>`;
+      messages.insertAdjacentHTML('beforeend', html);
+      messages.scrollTop = messages.scrollHeight;
+    }, delay);
+  });
+
+  setTimeout(() => {
+    const inp = document.getElementById('input-field');
+    if (inp) {
+      inp.placeholder = 'tell me who you are…';
+      inp.focus();
+    }
+  }, 8500);
+}
+
+// ══════════════════════════════════════════
 //  CHAT
 // ══════════════════════════════════════════
 async function loadHistory() {
@@ -4164,6 +4211,12 @@ async function loadHistory() {
   const empty     = document.getElementById('empty-state');
 
   if (!msgs.length) {
+    // First-run hatch sequence — plays once
+    if (!localStorage.getItem('forge_hatched') && curAgent === 'FORGE') {
+      localStorage.setItem('forge_hatched', '1');
+      playHatchSequence();
+      return;
+    }
     container.style.display = 'none';
     empty.style.display     = 'flex';
     return;
